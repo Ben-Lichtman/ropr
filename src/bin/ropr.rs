@@ -61,7 +61,7 @@ fn main() {
 
 	lexical.sort_unstable();
 
-	lexical.dedup();
+	lexical.dedup_by(|a, b| a.0 == b.0);
 
 	for (gadget, addr) in &lexical {
 		println!("{} {}", addr, gadget);
