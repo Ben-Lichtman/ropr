@@ -8,6 +8,9 @@ pub struct Settings {
 	pub max_instructions_per_gadget: usize,
 	pub intel_syntax: bool,
 	pub colour: bool,
+	pub rop: bool,
+	pub sys: bool,
+	pub jop: bool,
 }
 
 impl Default for Settings {
@@ -19,6 +22,9 @@ impl Default for Settings {
 			max_instructions_per_gadget: 6,
 			intel_syntax: true,
 			colour: true,
+			rop: true,
+			sys: true,
+			jop: true,
 		}
 	}
 }

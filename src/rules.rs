@@ -2,8 +2,16 @@ use zydis::{
 	DecodedInstruction, InstructionCategory, Mnemonic, OperandAction, OperandType, Register,
 };
 
-fn is_gadget_tail(instr: &DecodedInstruction) -> bool {
-	if is_ret(instr) || is_int(instr) || is_syscall(instr) || is_jop_gadget_tail(instr) {
+use crate::settings::Settings;
+
+fn is_gadget_tail(instr: &DecodedInstruction, settings: Settings) -> bool {
+	if settings.rop && is_ret(instr) {
+		return true;
+	}
+	if settings.sys && (is_int(instr) || is_syscall(instr)) {
+		return true;
+	}
+	if settings.jop && is_jop_gadget_tail(instr) {
 		return true;
 	}
 
@@ -19,10 +27,10 @@ fn is_gadget_head(instrs: &[DecodedInstruction]) -> bool {
 	true
 }
 
-pub fn is_valid_gadget(instrs: &[DecodedInstruction]) -> bool {
+pub fn is_valid_gadget(instrs: &[DecodedInstruction], settings: Settings) -> bool {
 	let (last, rest) = instrs.split_last().unwrap();
 
-	if !is_gadget_tail(last) {
+	if !is_gadget_tail(last, settings) {
 		return false;
 	}
 

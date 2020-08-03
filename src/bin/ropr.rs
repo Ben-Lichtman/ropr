@@ -1,17 +1,46 @@
 use rayon::prelude::*;
+use structopt::StructOpt;
 
-use std::env::args;
+use std::path::PathBuf;
 
 use ropr::binary::Binary;
 use ropr::formatting::format_gadget;
 use ropr::settings::Settings;
 
-fn main() {
-	let args = args().into_iter().collect::<Vec<_>>();
+#[derive(StructOpt)]
+#[structopt(name = "ropr")]
+struct Opt {
+	#[structopt(short = "c", long)]
+	nocolour: bool,
 
-	let b = Binary::new(&args[1]).unwrap();
+	#[structopt(short = "r", long)]
+	norop: bool,
+
+	#[structopt(short = "s", long)]
+	nosys: bool,
+
+	#[structopt(short = "j", long)]
+	nojop: bool,
+
+	#[structopt(short, long, default_value = "6")]
+	max_instr: u8,
+
+	binary: PathBuf,
+}
+
+fn main() {
+	let opts = Opt::from_args();
+
+	let b = opts.binary;
+	let b = Binary::new(b).unwrap();
 	let sections = b.sections().unwrap();
-	let settings = Settings::default();
+
+	let mut settings = Settings::default();
+	settings.colour = !opts.nocolour;
+	settings.rop = !opts.norop;
+	settings.sys = !opts.nosys;
+	settings.jop = !opts.nojop;
+	settings.max_instructions_per_gadget = opts.max_instr as usize;
 
 	// let mut set = HashSet::new();
 

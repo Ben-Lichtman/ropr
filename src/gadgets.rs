@@ -49,6 +49,7 @@ struct GadgetEnd {
 struct GadgetEndIterator<'b, 's> {
 	binary: &'b Binary,
 	section: &'s Section,
+	settings: Settings,
 	disassembler: Decoder,
 	current_pos: usize,
 }
@@ -77,7 +78,7 @@ impl<'b, 's> Iterator for GadgetEndIterator<'b, 's> {
 
 			let array = [gadget_end];
 
-			if !is_valid_gadget(&array) {
+			if !is_valid_gadget(&array, self.settings) {
 				continue;
 			}
 
@@ -102,6 +103,7 @@ impl<'b, 's> GadgetEndIterator<'b, 's> {
 		GadgetEndIterator {
 			binary,
 			section,
+			settings,
 			disassembler,
 			current_pos: start_pos,
 		}
@@ -175,7 +177,7 @@ impl<'b, 's> Iterator for GadgetIterator<'b, 's> {
 				continue;
 			}
 
-			if !is_valid_gadget(&current_gadget) {
+			if !is_valid_gadget(&current_gadget, self.settings) {
 				continue;
 			}
 
@@ -265,7 +267,7 @@ impl<'b, 's> Iterator for ParGadgetIterator<'b, 's> {
 				continue;
 			}
 
-			if !is_valid_gadget(&current_gadget) {
+			if !is_valid_gadget(&current_gadget, self.settings) {
 				continue;
 			}
 
