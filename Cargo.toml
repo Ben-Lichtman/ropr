@@ -3,7 +3,7 @@ name = "ropr"
 version = "0.1.0"
 authors = ["Ben Lichtman"]
 edition = "2018"
-description = "TLS intercepting web proxy inspired by Burp Suite and Mitmproxy"
+description = "A multithreaded ROP Gadget finder. ropper / ropgadget alternative inspired by xgadget"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
