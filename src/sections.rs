@@ -1,15 +1,13 @@
-use goblin::archive::Archive;
-use goblin::elf::Elf;
-use goblin::mach::Mach;
-use goblin::pe::PE;
+use goblin::{archive::Archive, elf::Elf, mach::Mach, pe::PE};
 
-use goblin::elf64::program_header::PF_X;
-use goblin::pe::section_table::IMAGE_SCN_MEM_EXECUTE;
+use goblin::{elf64::program_header::PF_X, pe::section_table::IMAGE_SCN_MEM_EXECUTE};
 
-use crate::binary::Binary;
-use crate::error::Error;
-use crate::gadgets::{gadget_iterator_par, Gadget, GadgetIterator};
-use crate::settings::Settings;
+use crate::{
+	binary::Binary,
+	error::Error,
+	gadgets::{gadget_iterator_par, Gadget, GadgetIterator},
+	settings::Settings,
+};
 
 pub struct Section {
 	pub file_start: usize,

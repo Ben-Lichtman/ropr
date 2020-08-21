@@ -3,6 +3,8 @@ name = "ropr"
 version = "0.1.0"
 authors = ["Ben-Lichtman <Ben_Lichtman@icloud.com>"]
 edition = "2018"
+description = "TLS intercepting web proxy inspired by Burp Suite and Mitmproxy"
+license = "MIT OR Apache-2.0"
 
 [dependencies]
 thiserror = "1.0.20"

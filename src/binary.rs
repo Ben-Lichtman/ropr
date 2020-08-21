@@ -1,10 +1,11 @@
-use std::fs::read;
-use std::path::PathBuf;
+use std::{fs::read, path::PathBuf};
 
 use goblin::Object;
 
-use crate::error::Error;
-use crate::sections::{self, Section};
+use crate::{
+	error::Error,
+	sections::{self, Section},
+};
 
 pub struct Binary {
 	path: PathBuf,
