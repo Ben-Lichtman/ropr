@@ -3,9 +3,7 @@ use structopt::StructOpt;
 
 use std::path::PathBuf;
 
-use ropr::binary::Binary;
-use ropr::formatting::format_gadget;
-use ropr::settings::Settings;
+use ropr::{binary::Binary, formatting::format_gadget, settings::Settings};
 
 #[derive(StructOpt)]
 #[structopt(name = "ropr")]
@@ -41,14 +39,6 @@ fn main() {
 	settings.sys = !opts.nosys;
 	settings.jop = !opts.nojop;
 	settings.max_instructions_per_gadget = opts.max_instr as usize;
-
-	// let mut set = HashSet::new();
-
-	// for section in sections {
-	// 	for gadget in section.iter_gadgets(&b, settings) {
-	// 		set.insert(gadget);
-	// 	}
-	// }
 
 	let mut lexical = sections
 		.par_iter()

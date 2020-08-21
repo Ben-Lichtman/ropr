@@ -1,0 +1,12 @@
+edition = "2018"
+fn_single_line = true
+hard_tabs = true
+trailing_semicolon = true
+use_field_init_shorthand = true
+use_try_shorthand = true
+struct_lit_single_line = true
+condense_wildcard_suffixes = true
+control_brace_style = "ClosingNextLine"
+overflow_delimited_expr = false
+use_small_heuristics = "Default"
+merge_imports = true

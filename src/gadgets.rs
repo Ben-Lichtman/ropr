@@ -2,14 +2,13 @@ use zydis::{DecodedInstruction, Decoder};
 
 use rayon::prelude::*;
 
-use std::cmp::{Ord, Ordering};
-use std::hash::{Hash, Hasher};
-use std::iter::Peekable;
+use std::{
+	cmp::{Ord, Ordering},
+	hash::{Hash, Hasher},
+	iter::Peekable,
+};
 
-use crate::binary::Binary;
-use crate::rules::is_valid_gadget;
-use crate::sections::Section;
-use crate::settings::Settings;
+use crate::{binary::Binary, rules::is_valid_gadget, sections::Section, settings::Settings};
 
 #[derive(Clone)]
 pub struct Gadget {

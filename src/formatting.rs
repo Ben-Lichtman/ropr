@@ -4,11 +4,9 @@ use zydis::{
 
 use colored::{ColoredString, Colorize};
 
-use std::any::Any;
-use std::fmt::Write;
+use std::{any::Any, fmt::Write};
 
-use crate::gadgets::Gadget;
-use crate::settings::Settings;
+use crate::{gadgets::Gadget, settings::Settings};
 
 const FORMAT_BUF_SIZE: usize = 0x100;
 
