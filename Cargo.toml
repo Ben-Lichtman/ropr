@@ -1,9 +1,10 @@
 [package]
 name = "ropr"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Ben Lichtman"]
 edition = "2018"
 description = "A multithreaded ROP Gadget finder. ropper / ropgadget alternative inspired by xgadget"
+repository = "https://github.com/Ben-Lichtman/ropr"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
