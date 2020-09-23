@@ -40,7 +40,7 @@ pub fn format_gadget(gadget: &Gadget, mut settings: Settings) -> (String, String
 		.unwrap();
 
 	let mut address_output = String::new();
-	write!(&mut address_output, "[{:016x}]:", addr).unwrap();
+	write!(&mut address_output, "0x{:016x}:", addr).unwrap();
 	match settings.colour {
 		true => address_output = address_output.red().to_string(),
 		false => (),
