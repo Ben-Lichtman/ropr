@@ -1,4 +1,5 @@
 use rayon::prelude::*;
+use regex::Regex;
 use structopt::StructOpt;
 
 use std::path::PathBuf;
@@ -23,6 +24,9 @@ struct Opt {
 	#[structopt(short, long, default_value = "6")]
 	max_instr: u8,
 
+	#[structopt(short = "R", long)]
+	regex: Option<String>,
+
 	binary: PathBuf,
 }
 
@@ -40,12 +44,14 @@ fn main() {
 	settings.jop = !opts.nojop;
 	settings.max_instructions_per_gadget = opts.max_instr as usize;
 
+	let regex = opts.regex.map(|r| Regex::new(&r).unwrap());
+
 	let mut lexical = sections
 		.par_iter()
 		.flat_map(|s| s.par_iter_gadgets(&b, settings))
 		.map(|g| {
-			let (a, g) = format_gadget(&g, settings.clone());
-			(g, a)
+			let (a, g_r, g_d) = format_gadget(&g, settings.clone());
+			(g_r, a, g_d)
 		})
 		.collect::<Vec<_>>();
 
@@ -53,8 +59,15 @@ fn main() {
 
 	lexical.dedup_by(|a, b| a.0 == b.0);
 
-	for (gadget, addr) in &lexical {
-		println!("{} {}", addr, gadget);
+	for (gadget_raw, addr, gadget_display) in &lexical {
+		match &regex {
+			Some(r) => {
+				if r.is_match(gadget_raw) {
+					println!("{} {}", addr, gadget_display);
+				}
+			}
+			None => println!("{} {}", addr, gadget_display),
+		}
 	}
 
 	println!("{} gadgets found", lexical.len())

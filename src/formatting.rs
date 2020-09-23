@@ -10,7 +10,7 @@ use crate::{gadgets::Gadget, settings::Settings};
 
 const FORMAT_BUF_SIZE: usize = 0x100;
 
-pub fn format_gadget(gadget: &Gadget, mut settings: Settings) -> (String, String) {
+pub fn format_gadget(gadget: &Gadget, mut settings: Settings) -> (String, String, String) {
 	let addr = gadget.file_offset;
 
 	let mut buf = [0u8; FORMAT_BUF_SIZE];
@@ -21,6 +21,16 @@ pub fn format_gadget(gadget: &Gadget, mut settings: Settings) -> (String, String
 		false => Formatter::new(FormatterStyle::ATT),
 	}
 	.unwrap();
+
+	let mut gadget_output_raw = String::new();
+	for instruction in gadget.as_ref() {
+		formatter
+			.format_instruction(&instruction, &mut buf, None, Some(&mut settings))
+			.unwrap();
+		write!(&mut gadget_output_raw, "{}; ", buf.as_str().unwrap()).unwrap();
+	}
+	// Compansate for oddity in the formatting
+	gadget_output_raw.retain(|c| c != '\x1f');
 
 	formatter
 		.set_print_register(Box::new(reg_callback))
@@ -39,18 +49,18 @@ pub fn format_gadget(gadget: &Gadget, mut settings: Settings) -> (String, String
 	// Compansate for oddity in the formatting
 	address_output.retain(|c| c != '\x1f');
 
-	let mut gadget_output = String::new();
+	let mut gadget_output_display = String::new();
 	for instruction in gadget.as_ref() {
 		formatter
 			.format_instruction(&instruction, &mut buf, None, Some(&mut settings))
 			.unwrap();
-		write!(&mut gadget_output, "{}; ", buf.as_str().unwrap()).unwrap();
+		write!(&mut gadget_output_display, "{}; ", buf.as_str().unwrap()).unwrap();
 	}
 
 	// Compansate for oddity in the formatting
-	gadget_output.retain(|c| c != '\x1f');
+	gadget_output_display.retain(|c| c != '\x1f');
 
-	(address_output, gadget_output)
+	(address_output, gadget_output_raw, gadget_output_display)
 }
 
 fn reg_callback(
