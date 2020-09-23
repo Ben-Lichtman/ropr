@@ -55,19 +55,16 @@ fn main() {
 		})
 		.collect::<Vec<_>>();
 
+	if let Some(r) = regex {
+		lexical.retain(|(g_r, ..)| r.is_match(g_r));
+	}
+
 	lexical.sort_unstable();
 
 	lexical.dedup_by(|a, b| a.0 == b.0);
 
-	for (gadget_raw, addr, gadget_display) in &lexical {
-		match &regex {
-			Some(r) => {
-				if r.is_match(gadget_raw) {
-					println!("{} {}", addr, gadget_display);
-				}
-			}
-			None => println!("{} {}", addr, gadget_display),
-		}
+	for (_, addr, gadget_display) in &lexical {
+		println!("{} {}", addr, gadget_display)
 	}
 
 	println!("{} gadgets found", lexical.len())
