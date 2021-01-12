@@ -1,2 +1,2 @@
 # ropr
-A multithreaded ROP Gadget finder. ropper / ropgadget alternative
+A blazing fast multithreaded ROP Gadget finder. ropper / ropgadget alternative
