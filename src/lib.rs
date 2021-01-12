@@ -1,7 +1,7 @@
 pub mod binary;
+pub mod disassembler;
 pub mod error;
-pub mod formatting;
+pub mod formatter;
 pub mod gadgets;
 pub mod rules;
 pub mod sections;
-pub mod settings;

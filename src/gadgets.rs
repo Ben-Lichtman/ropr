@@ -1,314 +1,210 @@
-use zydis::{DecodedInstruction, Decoder};
-
-use rayon::prelude::*;
+use iced_x86::{Formatter, FormatterOutput, FormatterTextKind, Instruction};
 
 use std::{
-	cmp::{Ord, Ordering},
+	cmp::Ordering,
 	hash::{Hash, Hasher},
-	iter::Peekable,
 };
 
-use crate::{binary::Binary, rules::is_valid_gadget, sections::Section, settings::Settings};
+use crate::{
+	disassembler::{Bitness, Disassembler},
+	rules::{is_gadget_head, is_gadget_tail},
+	sections::Section,
+};
 
-#[derive(Clone)]
 pub struct Gadget {
-	pub file_offset: usize,
-	pub mem_offset: usize,
-	instructions: Vec<DecodedInstruction>,
+	file_offset: usize,
+	len: usize,
+	instructions: Vec<Instruction>,
 }
 
 impl PartialEq for Gadget {
-	fn eq(&self, other: &Self) -> bool { self.instructions == other.instructions }
+	fn eq(&self, other: &Self) -> bool { self.instructions.eq(&other.instructions) }
 }
 
 impl Eq for Gadget {}
 
+impl Hash for Gadget {
+	fn hash<H>(&self, state: &mut H)
+	where
+		H: Hasher,
+	{
+		self.instructions.hash(state);
+	}
+}
+
 impl PartialOrd for Gadget {
-	fn partial_cmp(&self, other: &Self) -> Option<Ordering> { Some(self.cmp(other)) }
+	fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+		Some(self.file_offset.cmp(&other.file_offset))
+	}
 }
 
 impl Ord for Gadget {
-	fn cmp(&self, other: &Self) -> Ordering { Ord::cmp(&self.file_offset, &other.file_offset) }
+	fn cmp(&self, other: &Self) -> Ordering { self.file_offset.cmp(&other.file_offset) }
 }
 
-impl AsRef<[DecodedInstruction]> for Gadget {
-	fn as_ref(&self) -> &[DecodedInstruction] { &self.instructions }
+impl Gadget {
+	pub fn file_offset(&self) -> usize { self.file_offset }
+
+	pub fn len(&self) -> usize { self.len }
+
+	pub fn instructions(&self) -> &[Instruction] { &self.instructions }
+
+	pub fn format_instruction(&self, output: &mut impl FormatterOutput) {
+		let mut formatter = iced_x86::IntelFormatter::new();
+		let options = iced_x86::Formatter::options_mut(&mut formatter);
+		options.set_hex_prefix("0x");
+		options.set_hex_suffix("");
+		options.set_space_after_operand_separator(true);
+		// Write instructions
+		let mut instructions = self.instructions.iter().peekable();
+		while let Some(i) = instructions.next() {
+			formatter.format(i, output);
+			output.write(";", FormatterTextKind::Text);
+			if let Some(_) = instructions.peek() {
+				output.write(" ", FormatterTextKind::Text);
+			}
+		}
+	}
+
+	pub fn format_full(&self, output: &mut impl FormatterOutput) {
+		// Write address
+		output.write(
+			&format!("{:#010x}: ", self.file_offset),
+			FormatterTextKind::Function,
+		);
+		self.format_instruction(output);
+	}
 }
 
-impl Hash for Gadget {
-	fn hash<H: Hasher>(&self, state: &mut H) { self.instructions.hash(state); }
+pub struct Disassembly<'b> {
+	bytes: &'b [u8],
+	instructions: Vec<Instruction>,
+	file_offset: usize,
 }
 
-#[derive(Clone, Copy)]
-struct GadgetEnd {
-	offset: usize,
-	length: u8,
+impl Disassembly<'_> {
+	pub fn instruction(&self, index: usize) -> &Instruction { &self.instructions[index] }
 }
 
-struct GadgetEndIterator<'b, 's> {
-	binary: &'b Binary,
-	section: &'s Section,
-	settings: Settings,
-	disassembler: Decoder,
-	current_pos: usize,
+pub struct TailsIter<'b, 'd> {
+	disassembly: &'d Disassembly<'b>,
+	rop: bool,
+	sys: bool,
+	jop: bool,
+	index: usize,
 }
 
-impl<'b, 's> Iterator for GadgetEndIterator<'b, 's> {
-	type Item = GadgetEnd;
+impl Iterator for TailsIter<'_, '_> {
+	type Item = usize;
 
 	fn next(&mut self) -> Option<Self::Item> {
-		loop {
-			let file_pos = self.current_pos;
-
-			if self.current_pos >= self.section.file_end {
-				break None;
+		while let Some(instr) = self.disassembly.instructions.get(self.index) {
+			if is_gadget_tail(instr, self.rop, self.sys, self.jop) {
+				let tail = self.index;
+				self.index += 1;
+				return Some(tail);
 			}
-
-			self.current_pos += 1;
-
-			let inspected_slice = &self.binary.bytes()[file_pos..];
-			let ip = (self.section.program_base + self.section.section_vaddr + file_pos) as u64;
-			let instructions = self.disassembler.instruction_iterator(inspected_slice, ip);
-
-			let gadget_end = match instructions.map(|x| x.0).next() {
-				Some(t) => t,
-				None => continue,
-			};
-
-			let array = [gadget_end];
-
-			if !is_valid_gadget(&array, self.settings) {
-				continue;
+			else {
+				self.index += 1;
 			}
-
-			break Some(GadgetEnd {
-				offset: file_pos,
-				length: array[0].length,
-			});
 		}
+		None
 	}
 }
 
-impl<'b, 's> GadgetEndIterator<'b, 's> {
-	pub fn from_section(binary: &'b Binary, section: &'s Section, settings: Settings) -> Self {
-		let disassembler = Decoder::new(
-			settings.disassembler_machine_mode,
-			settings.disassembler_address_width,
-		)
-		.unwrap();
-
-		let start_pos = section.file_start;
-
-		GadgetEndIterator {
-			binary,
-			section,
-			settings,
-			disassembler,
-			current_pos: start_pos,
-		}
-	}
+pub struct GadgetIterator<'b, 'd> {
+	disassembly: &'d Disassembly<'b>,
+	tail: usize,
+	start_index: usize,
+	max_instructions: usize,
 }
 
-pub struct GadgetIterator<'b, 's> {
-	binary: &'b Binary,
-	section: &'s Section,
-	settings: Settings,
-	disassembler: Decoder,
-	ends: Peekable<GadgetEndIterator<'b, 's>>,
-	extra_bytes: usize,
-}
-
-impl<'b, 's> Iterator for GadgetIterator<'b, 's> {
+impl<'b> Iterator for GadgetIterator<'b, '_> {
 	type Item = Gadget;
 
 	fn next(&mut self) -> Option<Self::Item> {
-		loop {
-			let extra_bytes = self.extra_bytes;
+		'outer: while self.start_index < self.tail {
+			let mut instructions = Vec::with_capacity(self.tail - self.start_index + 1);
 
-			let GadgetEnd { offset, length } = match self.ends.peek() {
-				Some(e) => e,
-				None => break None,
-			};
-
-			// Is slice too big
-			if *length as usize + extra_bytes
-				> self.settings.max_bytes_per_instruction
-					* self.settings.max_instructions_per_gadget
-			{
-				self.extra_bytes = 0;
-				self.ends.next();
-				continue;
-			}
-
-			// Make sure integer doesn't overflow
-			let slice_start = match offset.checked_sub(extra_bytes) {
-				Some(s) => s,
-				None => {
-					self.extra_bytes = 0;
-					self.ends.next();
-					continue;
+			let mut index = self.start_index;
+			while index < self.tail {
+				if instructions.len() == self.max_instructions {
+					self.start_index += 1;
+					continue 'outer;
 				}
-			};
-			let slice_end = offset + (*length as usize);
 
-			if slice_start < self.section.file_start {
-				self.extra_bytes = 0;
-				self.ends.next();
-				continue;
+				let current = &self.disassembly.instructions[index];
+				match is_gadget_head(current) {
+					true => {
+						instructions.push(current.clone());
+						index += current.len()
+					}
+					false => {
+						self.start_index += 1;
+						continue 'outer;
+					}
+				}
 			}
 
-			self.extra_bytes += 1;
-
-			let current_gadget_slice = &self.binary.bytes()[slice_start..slice_end];
-
-			let ip = (self.section.program_base + self.section.section_vaddr + slice_start) as u64;
-			let current_gadget = self
-				.disassembler
-				.instruction_iterator(current_gadget_slice, ip);
-
-			let current_gadget = current_gadget.map(|x| x.0).collect::<Vec<_>>();
-
-			if current_gadget.len() == 0 {
-				continue;
+			if index == self.tail {
+				instructions.push(self.disassembly.instructions[self.tail]);
+				let extra_len = self.disassembly.instructions[self.tail].len();
+				let gadget = Gadget {
+					file_offset: self.disassembly.file_offset + self.start_index,
+					len: self.tail + extra_len - self.start_index,
+					instructions,
+				};
+				self.start_index += 1;
+				return Some(gadget);
 			}
-
-			if current_gadget.len() > self.settings.max_instructions_per_gadget {
-				continue;
+			else {
+				self.start_index += 1;
 			}
-
-			if !is_valid_gadget(&current_gadget, self.settings) {
-				continue;
-			}
-
-			break Some(Gadget {
-				file_offset: slice_start,
-				mem_offset: self.section.program_base + self.section.section_vaddr + slice_start,
-				instructions: current_gadget,
-			});
 		}
+		None
 	}
 }
 
-impl<'b, 's> GadgetIterator<'b, 's> {
-	pub fn from_section(binary: &'b Binary, section: &'s Section, settings: Settings) -> Self {
-		let disassembler = Decoder::new(
-			settings.disassembler_machine_mode,
-			settings.disassembler_address_width,
-		)
-		.unwrap();
+impl<'b> Disassembly<'b> {
+	pub fn new(section: &'b Section) -> Self {
+		let bytes = section.bytes();
 
-		let ends = GadgetEndIterator::from_section(binary, section, settings).peekable();
+		let mut instructions = vec![Instruction::default(); bytes.len()];
+		let mut disassembler = Disassembler::new(Bitness::Bits64, bytes);
 
+		// Fully disassemble program
+		for start in 0..bytes.len() - 1 {
+			disassembler.decode_at_offset(
+				(section.program_base() + section.section_vaddr() + start) as u64,
+				start,
+				&mut instructions[start],
+			)
+		}
+
+		Self {
+			bytes,
+			instructions,
+			file_offset: section.program_base() + section.section_vaddr(),
+		}
+	}
+
+	pub fn tails<'d>(&'d self, rop: bool, sys: bool, jop: bool) -> TailsIter<'d, 'b> {
+		TailsIter {
+			disassembly: &self,
+			rop,
+			sys,
+			jop,
+			index: 0,
+		}
+	}
+
+	pub fn gadgets_from_tail<'d>(&'d self, tail: usize, max_instructions: usize) -> GadgetIterator {
+		let start_index = tail.checked_sub((max_instructions - 1) * 15).unwrap_or(0);
 		GadgetIterator {
-			binary,
-			section,
-			disassembler,
-			ends,
-			settings,
-			extra_bytes: 0,
+			disassembly: &self,
+			tail,
+			start_index,
+			max_instructions,
 		}
 	}
-}
-
-pub struct ParGadgetIterator<'b, 's> {
-	binary: &'b Binary,
-	section: &'s Section,
-	settings: Settings,
-	disassembler: Decoder,
-	end: GadgetEnd,
-	extra_bytes: usize,
-}
-
-impl<'b, 's> Iterator for ParGadgetIterator<'b, 's> {
-	type Item = Gadget;
-
-	fn next(&mut self) -> Option<Self::Item> {
-		loop {
-			let extra_bytes = self.extra_bytes;
-
-			let GadgetEnd { offset, length } = self.end;
-
-			// Is slice too big
-			if length as usize + extra_bytes
-				> self.settings.max_bytes_per_instruction
-					* self.settings.max_instructions_per_gadget
-			{
-				break None;
-			}
-
-			// Make sure integer doesn't overflow
-			let slice_start = match offset.checked_sub(extra_bytes) {
-				Some(s) => s,
-				None => break None,
-			};
-			let slice_end = offset + (length as usize);
-
-			if slice_start < self.section.file_start {
-				break None;
-			}
-
-			self.extra_bytes += 1;
-
-			let current_gadget_slice = &self.binary.bytes()[slice_start..slice_end];
-
-			let ip = (self.section.program_base + self.section.section_vaddr + slice_start) as u64;
-			let current_gadget = self
-				.disassembler
-				.instruction_iterator(current_gadget_slice, ip);
-
-			let current_gadget = current_gadget.map(|x| x.0).collect::<Vec<_>>();
-
-			if current_gadget.len() == 0 {
-				continue;
-			}
-
-			if current_gadget.len() > self.settings.max_instructions_per_gadget {
-				continue;
-			}
-
-			if !is_valid_gadget(&current_gadget, self.settings) {
-				continue;
-			}
-
-			break Some(Gadget {
-				file_offset: slice_start,
-				mem_offset: self.section.program_base + self.section.section_vaddr + slice_start,
-				instructions: current_gadget,
-			});
-		}
-	}
-}
-
-pub fn gadget_iterator_par<'b, 's>(
-	binary: &'b Binary,
-	section: &'s Section,
-	settings: Settings,
-) -> Vec<Gadget> {
-	let disassembler = Decoder::new(
-		settings.disassembler_machine_mode,
-		settings.disassembler_address_width,
-	)
-	.unwrap();
-
-	let ends = GadgetEndIterator::from_section(binary, section, settings).collect::<Vec<_>>();
-
-	let gadgets = ends
-		.par_iter()
-		.copied()
-		.map(|end| {
-			let iterator = ParGadgetIterator {
-				binary,
-				section,
-				disassembler: disassembler.clone(),
-				end,
-				settings,
-				extra_bytes: 0,
-			};
-
-			iterator.collect::<Vec<_>>()
-		})
-		.flatten()
-		.collect::<Vec<_>>();
-
-	gadgets
 }

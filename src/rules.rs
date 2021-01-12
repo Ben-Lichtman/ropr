@@ -1,99 +1,81 @@
-use zydis::{
-	DecodedInstruction, InstructionCategory, Mnemonic, OperandAction, OperandType, Register,
-};
+use iced_x86::{Code, FlowControl, Instruction, Mnemonic, OpKind, Register};
 
-use crate::settings::Settings;
+fn is_ret(instr: &Instruction) -> bool {
+	match instr.mnemonic() {
+		Mnemonic::Ret => true,
+		_ => return false,
+	}
+}
 
-fn is_gadget_tail(instr: &DecodedInstruction, settings: Settings) -> bool {
-	if settings.rop && is_ret(instr) {
+fn is_sys(instr: &Instruction) -> bool {
+	match instr.mnemonic() {
+		Mnemonic::Syscall => true,
+		Mnemonic::Int => match instr.immediate(0) {
+			0x80 => true,
+			_ => false,
+		},
+		_ => false,
+	}
+}
+
+fn is_jop(instr: &Instruction) -> bool {
+	match instr.mnemonic() {
+		Mnemonic::Jmp => match instr.op0_kind() {
+			OpKind::Register => true,
+			OpKind::Memory => match instr.memory_base() {
+				Register::EIP => false,
+				Register::RIP => false,
+				_ => true,
+			},
+			_ => false,
+		},
+		Mnemonic::Call => match instr.op0_kind() {
+			OpKind::Register => true,
+			OpKind::Memory => match instr.memory_base() {
+				Register::EIP => false,
+				Register::RIP => false,
+				_ => true,
+			},
+			_ => false,
+		},
+		_ => return false,
+	}
+}
+
+fn is_invalid(instr: &Instruction) -> bool {
+	match instr.code() {
+		Code::INVALID => true,
+		_ => false,
+	}
+}
+
+pub fn is_gadget_tail(instr: &Instruction, rop: bool, sys: bool, jop: bool) -> bool {
+	if is_invalid(instr) {
+		return false;
+	}
+	match instr.flow_control() {
+		FlowControl::Next => return false,
+		_ => (),
+	}
+	if rop && is_ret(instr) {
 		return true;
 	}
-	if settings.sys && (is_int(instr) || is_syscall(instr)) {
+	if sys && is_sys(instr) {
 		return true;
 	}
-	if settings.jop && is_jop_gadget_tail(instr) {
+	if jop && is_jop(instr) {
 		return true;
 	}
-
 	false
 }
 
-fn is_gadget_head(instrs: &[DecodedInstruction]) -> bool {
-	for instr in instrs {
-		if is_ret(instr) || is_int(instr) || is_syscall(instr) || is_call(instr) || is_jmp(instr) {
-			return false;
-		}
-	}
-	true
-}
-
-pub fn is_valid_gadget(instrs: &[DecodedInstruction], settings: Settings) -> bool {
-	let (last, rest) = instrs.split_last().unwrap();
-
-	if !is_gadget_tail(last, settings) {
+pub fn is_gadget_head(instr: &Instruction) -> bool {
+	if is_invalid(instr) {
 		return false;
 	}
-
-	if !is_gadget_head(rest) {
-		return false;
+	match instr.flow_control() {
+		FlowControl::Next => (),
+		_ => return false,
 	}
-
 	true
-}
-
-fn is_jop_gadget_tail(instr: &DecodedInstruction) -> bool {
-	is_reg_set_jmp(instr)
-		|| is_reg_set_call(instr)
-		|| is_mem_ptr_set_jmp(instr)
-		|| is_mem_ptr_set_call(instr)
-}
-
-fn is_reg_set_call(instr: &DecodedInstruction) -> bool { is_call(&instr) && is_single_reg(&instr) }
-
-fn is_reg_set_jmp(instr: &DecodedInstruction) -> bool { is_jmp(&instr) && is_single_reg(&instr) }
-
-fn is_mem_ptr_set_jmp(instr: &DecodedInstruction) -> bool {
-	is_jmp(&instr) && is_single_reg_deref(&instr)
-}
-
-fn is_mem_ptr_set_call(instr: &DecodedInstruction) -> bool {
-	is_call(&instr) && is_single_reg_deref(&instr)
-}
-
-fn is_single_reg(instr: &DecodedInstruction) -> bool {
-	let regs_read_cnt = instr
-		.operands
-		.iter()
-		.filter(|o| (o.action == OperandAction::READ) && (o.ty == OperandType::REGISTER))
-		.count();
-
-	regs_read_cnt == 1
-}
-
-fn is_single_reg_deref(instr: &DecodedInstruction) -> bool {
-	let regs_deref_cnt = instr
-		.operands
-		.iter()
-		.filter(|o| {
-			(o.action == OperandAction::READ)
-				&& (o.ty == OperandType::MEMORY)
-				&& (o.mem.base != Register::NONE)
-		})
-		.count();
-
-	regs_deref_cnt == 1
-}
-
-fn is_ret(instr: &DecodedInstruction) -> bool { instr.meta.category == InstructionCategory::RET }
-
-fn is_call(instr: &DecodedInstruction) -> bool { instr.meta.category == InstructionCategory::CALL }
-
-fn is_jmp(instr: &DecodedInstruction) -> bool { instr.mnemonic == Mnemonic::JMP }
-
-fn is_syscall(instr: &DecodedInstruction) -> bool {
-	instr.meta.category == InstructionCategory::SYSCALL
-}
-
-fn is_int(instr: &DecodedInstruction) -> bool {
-	instr.meta.category == InstructionCategory::INTERRUPT
 }

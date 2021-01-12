@@ -1,34 +1,36 @@
-use std::{fs::read, path::PathBuf};
+use std::{fs::read, path::Path};
 
 use goblin::Object;
 
 use crate::{
-	error::Error,
-	sections::{self, Section},
+	error::{Error, Result},
+	sections::{parse_archive, parse_elf, parse_mach, parse_pe, Section},
 };
 
-pub struct Binary {
-	path: PathBuf,
+pub struct Binary<'p> {
+	path: &'p Path,
 	bytes: Vec<u8>,
 }
 
-impl Binary {
-	pub fn new(path: impl Into<PathBuf>) -> Result<Self, Error> {
-		let path = path.into();
-		let bytes = read(&path)?;
+impl<'p> Binary<'p> {
+	pub fn new(path: &'p impl AsRef<Path>) -> Result<Self> {
+		let path = path.as_ref();
+		let bytes = read(path)?;
 		Ok(Self { path, bytes })
 	}
 
-	pub fn sections(&self) -> Result<Vec<Section>, Error> {
+	pub fn path(&self) -> &Path { self.path }
+
+	pub fn bytes(&self) -> &[u8] { &self.bytes }
+
+	pub fn sections(&self) -> Result<Vec<Section>> {
 		let sections = match Object::parse(&self.bytes)? {
-			Object::Elf(e) => sections::from_elf(self, e)?,
-			Object::PE(p) => sections::from_pe(self, p)?,
-			Object::Mach(m) => sections::from_mach(self, m)?,
-			Object::Archive(a) => sections::from_archive(self, a)?,
+			Object::Elf(e) => parse_elf(&e, &self.bytes)?,
+			Object::PE(p) => parse_pe(&p, &self.bytes)?,
+			Object::Mach(m) => parse_mach(&m, &self.bytes)?,
+			Object::Archive(a) => parse_archive(&a, &self.bytes)?,
 			Object::Unknown(_) => return Err(Error::ParseErr),
 		};
 		Ok(sections)
 	}
-
-	pub fn bytes(&self) -> &[u8] { &self.bytes }
 }

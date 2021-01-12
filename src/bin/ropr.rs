@@ -1,10 +1,12 @@
-use rayon::prelude::*;
-use regex::Regex;
 use structopt::StructOpt;
 
-use std::path::PathBuf;
+use regex::Regex;
 
-use ropr::{binary::Binary, formatting::format_gadget, settings::Settings};
+use rayon::prelude::*;
+
+use std::{collections::HashSet, path::PathBuf};
+
+use ropr::{binary::Binary, formatter::ColourFormatter, gadgets::Disassembly};
 
 #[derive(StructOpt)]
 #[structopt(name = "ropr")]
@@ -34,38 +36,63 @@ fn main() {
 	let opts = Opt::from_args();
 
 	let b = opts.binary;
-	let b = Binary::new(b).unwrap();
+	let b = Binary::new(&b).unwrap();
 	let sections = b.sections().unwrap();
 
-	let mut settings = Settings::default();
-	settings.colour = !opts.nocolour;
-	settings.rop = !opts.norop;
-	settings.sys = !opts.nosys;
-	settings.jop = !opts.nojop;
-	settings.max_instructions_per_gadget = opts.max_instr as usize;
+	let colour = !opts.nocolour;
+	let rop = !opts.norop;
+	let sys = !opts.nosys;
+	let jop = !opts.nojop;
+	let max_instructions_per_gadget = opts.max_instr as usize;
 
 	let regex = opts.regex.map(|r| Regex::new(&r).unwrap());
 
-	let mut lexical = sections
-		.par_iter()
-		.flat_map(|s| s.par_iter_gadgets(&b, settings))
+	let gadgets = sections
+		.iter()
+		.flat_map(|section| {
+			let dis = Disassembly::new(&section);
+			let tails = dis.tails(rop, sys, jop).collect::<Vec<_>>();
+			tails
+				.into_par_iter()
+				.flat_map_iter(|tail| dis.gadgets_from_tail(tail, max_instructions_per_gadget))
+				.collect::<Vec<_>>()
+		})
+		.collect::<HashSet<_>>();
+
+	let mut gadgets = gadgets
+		.into_iter()
 		.map(|g| {
-			let (a, g_r, g_d) = format_gadget(&g, settings.clone());
-			(g_r, a, g_d)
+			let mut formatted = String::new();
+			g.format_instruction(&mut formatted);
+			(g, formatted)
+		})
+		.filter(|(_, formatted)| match &regex {
+			Some(r) => r.is_match(formatted),
+			None => true,
 		})
 		.collect::<Vec<_>>();
+	gadgets.sort_unstable_by(|(_, a), (_, b)| a.cmp(b));
 
-	if let Some(r) = regex {
-		lexical.retain(|(g_r, ..)| r.is_match(g_r));
+	let mut gadget_count = 0;
+
+	if colour {
+		let mut output = ColourFormatter::new();
+		for (gadget, _) in gadgets {
+			output.clear();
+			gadget.format_full(&mut output);
+			println!("{}", output);
+			gadget_count += 1;
+		}
+	}
+	else {
+		let mut output = String::new();
+		for (gadget, _) in gadgets {
+			output.clear();
+			gadget.format_full(&mut output);
+			println!("{}", output);
+			gadget_count += 1;
+		}
 	}
 
-	lexical.sort_unstable();
-
-	lexical.dedup_by(|a, b| a.0 == b.0);
-
-	for (_, addr, gadget_display) in &lexical {
-		println!("{} {}", addr, gadget_display)
-	}
-
-	println!("{} gadgets found", lexical.len())
+	println!("Found {} gadgets", gadget_count);
 }
