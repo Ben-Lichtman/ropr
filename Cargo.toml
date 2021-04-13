@@ -1,6 +1,6 @@
 [package]
 name = "ropr"
-version = "0.2.2"
+version = "0.2.3"
 authors = ["Ben Lichtman"]
 edition = "2018"
 description = "A blazing fast multithreaded ROP Gadget finder. ropper / ropgadget alternative"
@@ -8,10 +8,10 @@ repository = "https://github.com/Ben-Lichtman/ropr"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-thiserror = "1.0.20"
-goblin = "0.2.3"
-iced-x86 = "1.10.0"
+thiserror = "1.0.24"
+goblin = "0.3.4"
+iced-x86 = "1.11.0"
 colored = "2.0.0"
-structopt = "0.3.17"
-regex = "1.3.9"
+structopt = "0.3.21"
+regex = "1.4.5"
 rayon = "1.5.0"

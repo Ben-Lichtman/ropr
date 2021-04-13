@@ -10,7 +10,7 @@ fn is_ret(instr: &Instruction) -> bool {
 fn is_sys(instr: &Instruction) -> bool {
 	match instr.mnemonic() {
 		Mnemonic::Syscall => true,
-		Mnemonic::Int => match instr.immediate(0) {
+		Mnemonic::Int => match instr.try_immediate(0).unwrap() {
 			0x80 => true,
 			_ => false,
 		},

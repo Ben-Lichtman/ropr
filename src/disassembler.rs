@@ -26,7 +26,7 @@ impl<'b> Disassembler<'b> {
 
 	pub fn decode_at_offset(&mut self, ip: u64, offset: usize, out: &mut Instruction) {
 		self.decoder.set_ip(ip);
-		self.decoder.set_position(offset);
+		self.decoder.try_set_position(offset).unwrap();
 		self.decoder.decode_out(out);
 	}
 }
