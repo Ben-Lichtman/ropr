@@ -49,8 +49,8 @@ fn main() {
 
 	let gadgets = sections
 		.iter()
-		.flat_map(|section| {
-			let dis = Disassembly::new(&section);
+		.filter_map(|section| Disassembly::new(&section))
+		.flat_map(|dis| {
 			let tails = dis.tails(rop, sys, jop).collect::<Vec<_>>();
 			tails
 				.into_par_iter()

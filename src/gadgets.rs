@@ -77,7 +77,7 @@ impl Gadget {
 }
 
 pub struct Disassembly<'b> {
-	bytes: &'b [u8],
+	_bytes: &'b [u8],
 	instructions: Vec<Instruction>,
 	file_offset: usize,
 }
@@ -166,8 +166,12 @@ impl<'b> Iterator for GadgetIterator<'b, '_> {
 }
 
 impl<'b> Disassembly<'b> {
-	pub fn new(section: &'b Section) -> Self {
+	pub fn new(section: &'b Section) -> Option<Self> {
 		let bytes = section.bytes();
+
+		if bytes.is_empty() {
+			return None;
+		}
 
 		let mut instructions = vec![Instruction::default(); bytes.len()];
 		let mut disassembler = Disassembler::new(Bitness::Bits64, bytes);
@@ -181,11 +185,11 @@ impl<'b> Disassembly<'b> {
 			)
 		}
 
-		Self {
-			bytes,
+		Some(Self {
+			_bytes: bytes,
 			instructions,
 			file_offset: section.program_base() + section.section_vaddr(),
-		}
+		})
 	}
 
 	pub fn tails<'d>(&'d self, rop: bool, sys: bool, jop: bool) -> TailsIter<'d, 'b> {
