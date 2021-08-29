@@ -1,3 +1,5 @@
+// Instructions currently may contains conditional branches in the head and may not contain unconditional relative branches or relative calls / jumps
+
 use iced_x86::{Code, FlowControl, Instruction, Mnemonic, OpKind, Register};
 
 fn is_ret(instr: &Instruction) -> bool { matches!(instr.mnemonic(), Mnemonic::Ret) }
@@ -53,6 +55,7 @@ pub fn is_gadget_head(instr: &Instruction) -> bool {
 	}
 	match instr.flow_control() {
 		FlowControl::Next => (),
+		FlowControl::ConditionalBranch => (),
 		_ => return false,
 	}
 	true

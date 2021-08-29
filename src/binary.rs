@@ -3,8 +3,8 @@ use std::{fs::read, path::Path};
 use goblin::Object;
 
 use crate::{
-	error::{Error, Result},
-	sections::{parse_archive, parse_elf, parse_mach, parse_pe, Section},
+	error::Result,
+	sections::{parse_archive, parse_blob, parse_elf, parse_mach, parse_pe, Section},
 };
 
 pub struct Binary<'p> {
@@ -29,7 +29,7 @@ impl<'p> Binary<'p> {
 			Object::PE(p) => parse_pe(&p, &self.bytes)?,
 			Object::Mach(m) => parse_mach(&m, &self.bytes)?,
 			Object::Archive(a) => parse_archive(&a, &self.bytes)?,
-			Object::Unknown(_) => return Err(Error::ParseErr),
+			Object::Unknown(_) => parse_blob(&self.bytes)?,
 		};
 		Ok(sections)
 	}

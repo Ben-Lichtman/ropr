@@ -111,6 +111,8 @@ impl Gadget {
 		options.set_hex_prefix("0x");
 		options.set_hex_suffix("");
 		options.set_space_after_operand_separator(true);
+		options.set_branch_leading_zeroes(false);
+		options.set_uppercase_hex(false);
 		// Write instructions
 		let mut instructions = self.instructions.iter().peekable();
 		while let Some(i) = instructions.next() {

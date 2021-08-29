@@ -70,3 +70,12 @@ pub fn parse_mach<'b>(_mach: &Mach, _bytes: &'b [u8]) -> Result<Vec<Section<'b>>
 pub fn parse_archive<'b>(_archive: &Archive, _bytes: &'b [u8]) -> Result<Vec<Section<'b>>> {
 	unimplemented!()
 }
+
+pub fn parse_blob(bytes: &[u8]) -> Result<Vec<Section<'_>>> {
+	Ok(vec![Section {
+		file_offset: 0,
+		section_vaddr: 0,
+		program_base: 0,
+		bytes,
+	}])
+}
