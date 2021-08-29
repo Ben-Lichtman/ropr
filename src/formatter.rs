@@ -4,6 +4,7 @@ use colored::{ColoredString, Colorize};
 
 use std::fmt::{Display, Formatter, Result};
 
+#[derive(Default)]
 pub struct ColourFormatter {
 	output: Vec<ColoredString>,
 }
@@ -18,7 +19,7 @@ impl Display for ColourFormatter {
 }
 
 impl ColourFormatter {
-	pub fn new() -> Self { Self { output: Vec::new() } }
+	pub fn new() -> Self { Self::default() }
 
 	pub fn clear(&mut self) { self.output.clear() }
 }

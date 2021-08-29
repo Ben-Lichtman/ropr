@@ -1,19 +1,11 @@
 use iced_x86::{Code, FlowControl, Instruction, Mnemonic, OpKind, Register};
 
-fn is_ret(instr: &Instruction) -> bool {
-	match instr.mnemonic() {
-		Mnemonic::Ret => true,
-		_ => return false,
-	}
-}
+fn is_ret(instr: &Instruction) -> bool { matches!(instr.mnemonic(), Mnemonic::Ret) }
 
 fn is_sys(instr: &Instruction) -> bool {
 	match instr.mnemonic() {
 		Mnemonic::Syscall => true,
-		Mnemonic::Int => match instr.try_immediate(0).unwrap() {
-			0x80 => true,
-			_ => false,
-		},
+		Mnemonic::Int => matches!(instr.try_immediate(0).unwrap(), 0x80),
 		_ => false,
 	}
 }
@@ -22,40 +14,26 @@ fn is_jop(instr: &Instruction) -> bool {
 	match instr.mnemonic() {
 		Mnemonic::Jmp => match instr.op0_kind() {
 			OpKind::Register => true,
-			OpKind::Memory => match instr.memory_base() {
-				Register::EIP => false,
-				Register::RIP => false,
-				_ => true,
-			},
+			OpKind::Memory => !matches!(instr.memory_base(), Register::EIP | Register::RIP),
 			_ => false,
 		},
 		Mnemonic::Call => match instr.op0_kind() {
 			OpKind::Register => true,
-			OpKind::Memory => match instr.memory_base() {
-				Register::EIP => false,
-				Register::RIP => false,
-				_ => true,
-			},
+			OpKind::Memory => !matches!(instr.memory_base(), Register::EIP | Register::RIP),
 			_ => false,
 		},
-		_ => return false,
-	}
-}
-
-fn is_invalid(instr: &Instruction) -> bool {
-	match instr.code() {
-		Code::INVALID => true,
 		_ => false,
 	}
 }
+
+fn is_invalid(instr: &Instruction) -> bool { matches!(instr.code(), Code::INVALID) }
 
 pub fn is_gadget_tail(instr: &Instruction, rop: bool, sys: bool, jop: bool) -> bool {
 	if is_invalid(instr) {
 		return false;
 	}
-	match instr.flow_control() {
-		FlowControl::Next => return false,
-		_ => (),
+	if instr.flow_control() == FlowControl::Next {
+		return false;
 	}
 	if rop && is_ret(instr) {
 		return true;

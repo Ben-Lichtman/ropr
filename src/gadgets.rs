@@ -11,6 +11,62 @@ use crate::{
 	sections::Section,
 };
 
+pub struct Disassembly<'b> {
+	_bytes: &'b [u8],
+	instructions: Vec<Instruction>,
+	file_offset: usize,
+}
+
+impl<'b> Disassembly<'b> {
+	pub fn new(section: &'b Section) -> Option<Self> {
+		let bytes = section.bytes();
+
+		if bytes.is_empty() {
+			return None;
+		}
+
+		let mut instructions = vec![Instruction::default(); bytes.len()];
+		let mut disassembler = Disassembler::new(Bitness::Bits64, bytes);
+
+		// Fully disassemble program
+		for (start, instruction) in instructions.iter_mut().enumerate().take(bytes.len()) {
+			disassembler.decode_at_offset(
+				(section.program_base() + section.section_vaddr() + start) as u64,
+				start,
+				instruction,
+			)
+		}
+
+		Some(Self {
+			_bytes: bytes,
+			instructions,
+			file_offset: section.program_base() + section.section_vaddr(),
+		})
+	}
+
+	pub fn instruction(&self, index: usize) -> &Instruction { &self.instructions[index] }
+
+	pub fn tails<'d>(&'d self, rop: bool, sys: bool, jop: bool) -> TailsIter<'d, 'b> {
+		TailsIter {
+			disassembly: self,
+			rop,
+			sys,
+			jop,
+			index: 0,
+		}
+	}
+
+	pub fn gadgets_from_tail(&self, tail: usize, max_instructions: usize) -> GadgetIterator {
+		let start_index = tail.saturating_sub((max_instructions - 1) * 15);
+		GadgetIterator {
+			disassembly: self,
+			tail,
+			start_index,
+			max_instructions,
+		}
+	}
+}
+
 pub struct Gadget {
 	file_offset: usize,
 	len: usize,
@@ -45,7 +101,7 @@ impl Ord for Gadget {
 impl Gadget {
 	pub fn file_offset(&self) -> usize { self.file_offset }
 
-	pub fn len(&self) -> usize { self.len }
+	pub fn _len(&self) -> usize { self.len }
 
 	pub fn instructions(&self) -> &[Instruction] { &self.instructions }
 
@@ -60,7 +116,7 @@ impl Gadget {
 		while let Some(i) = instructions.next() {
 			formatter.format(i, output);
 			output.write(";", FormatterTextKind::Text);
-			if let Some(_) = instructions.peek() {
+			if instructions.peek().is_some() {
 				output.write(" ", FormatterTextKind::Text);
 			}
 		}
@@ -74,16 +130,6 @@ impl Gadget {
 		);
 		self.format_instruction(output);
 	}
-}
-
-pub struct Disassembly<'b> {
-	_bytes: &'b [u8],
-	instructions: Vec<Instruction>,
-	file_offset: usize,
-}
-
-impl Disassembly<'_> {
-	pub fn instruction(&self, index: usize) -> &Instruction { &self.instructions[index] }
 }
 
 pub struct TailsIter<'b, 'd> {
@@ -123,7 +169,7 @@ impl<'b> Iterator for GadgetIterator<'b, '_> {
 	type Item = Gadget;
 
 	fn next(&mut self) -> Option<Self::Item> {
-		'outer: while self.start_index < self.tail {
+		'outer: while self.start_index <= self.tail {
 			let mut instructions = Vec::with_capacity(self.tail - self.start_index + 1);
 
 			let mut index = self.start_index;
@@ -136,7 +182,7 @@ impl<'b> Iterator for GadgetIterator<'b, '_> {
 				let current = &self.disassembly.instructions[index];
 				match is_gadget_head(current) {
 					true => {
-						instructions.push(current.clone());
+						instructions.push(*current);
 						index += current.len()
 					}
 					false => {
@@ -162,53 +208,5 @@ impl<'b> Iterator for GadgetIterator<'b, '_> {
 			}
 		}
 		None
-	}
-}
-
-impl<'b> Disassembly<'b> {
-	pub fn new(section: &'b Section) -> Option<Self> {
-		let bytes = section.bytes();
-
-		if bytes.is_empty() {
-			return None;
-		}
-
-		let mut instructions = vec![Instruction::default(); bytes.len()];
-		let mut disassembler = Disassembler::new(Bitness::Bits64, bytes);
-
-		// Fully disassemble program
-		for start in 0..bytes.len() - 1 {
-			disassembler.decode_at_offset(
-				(section.program_base() + section.section_vaddr() + start) as u64,
-				start,
-				&mut instructions[start],
-			)
-		}
-
-		Some(Self {
-			_bytes: bytes,
-			instructions,
-			file_offset: section.program_base() + section.section_vaddr(),
-		})
-	}
-
-	pub fn tails<'d>(&'d self, rop: bool, sys: bool, jop: bool) -> TailsIter<'d, 'b> {
-		TailsIter {
-			disassembly: &self,
-			rop,
-			sys,
-			jop,
-			index: 0,
-		}
-	}
-
-	pub fn gadgets_from_tail<'d>(&'d self, tail: usize, max_instructions: usize) -> GadgetIterator {
-		let start_index = tail.checked_sub((max_instructions - 1) * 15).unwrap_or(0);
-		GadgetIterator {
-			disassembly: &self,
-			tail,
-			start_index,
-			max_instructions,
-		}
 	}
 }
