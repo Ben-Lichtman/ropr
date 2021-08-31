@@ -84,7 +84,8 @@ For example if I was looking for a good stack-pivot I may choose to filter by th
 ❯ ropr libc-2.32-5-x86_64.so -R "^add esp, ...;"
 0x000e5e9b: add esp, eax; mov [r11+0x2C], r12d; pop r12; pop r13; pop r14; pop r15; ret;
 0x0003eb41: add esp, edi; mov rdx, rbp; mov rsi, r12; mov rdi, r13; call rbx;
-Found 2 gadgets
+
+==> Found 2 gadgets in 0.131 seconds
 ```
 
 Now I have a good stack-pivot candidate at address `0x000e5e9b`
