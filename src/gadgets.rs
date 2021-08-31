@@ -1,14 +1,12 @@
-use iced_x86::{Formatter, FormatterOutput, FormatterTextKind, Instruction};
-
-use std::{
-	cmp::Ordering,
-	hash::{Hash, Hasher},
-};
-
 use crate::{
 	disassembler::{Bitness, Disassembler},
 	rules::{is_gadget_head, is_gadget_tail},
 	sections::Section,
+};
+use iced_x86::{Formatter, FormatterOutput, FormatterTextKind, Instruction};
+use std::{
+	cmp::Ordering,
+	hash::{Hash, Hasher},
 };
 
 pub struct Disassembly<'b> {
@@ -46,23 +44,30 @@ impl<'b> Disassembly<'b> {
 
 	pub fn instruction(&self, index: usize) -> &Instruction { &self.instructions[index] }
 
-	pub fn tails<'d>(&'d self, rop: bool, sys: bool, jop: bool) -> TailsIter<'d, 'b> {
+	pub fn tails<'d>(&'d self, rop: bool, sys: bool, jop: bool, noisy: bool) -> TailsIter<'d, 'b> {
 		TailsIter {
 			disassembly: self,
 			rop,
 			sys,
 			jop,
+			noisy,
 			index: 0,
 		}
 	}
 
-	pub fn gadgets_from_tail(&self, tail: usize, max_instructions: usize) -> GadgetIterator {
+	pub fn gadgets_from_tail(
+		&self,
+		tail: usize,
+		max_instructions: usize,
+		noisy: bool,
+	) -> GadgetIterator {
 		let start_index = tail.saturating_sub((max_instructions - 1) * 15);
 		GadgetIterator {
 			disassembly: self,
 			tail,
 			start_index,
 			max_instructions,
+			noisy,
 		}
 	}
 }
@@ -139,6 +144,7 @@ pub struct TailsIter<'b, 'd> {
 	rop: bool,
 	sys: bool,
 	jop: bool,
+	noisy: bool,
 	index: usize,
 }
 
@@ -147,7 +153,7 @@ impl Iterator for TailsIter<'_, '_> {
 
 	fn next(&mut self) -> Option<Self::Item> {
 		while let Some(instr) = self.disassembly.instructions.get(self.index) {
-			if is_gadget_tail(instr, self.rop, self.sys, self.jop) {
+			if is_gadget_tail(instr, self.rop, self.sys, self.jop, self.noisy) {
 				let tail = self.index;
 				self.index += 1;
 				return Some(tail);
@@ -165,6 +171,7 @@ pub struct GadgetIterator<'b, 'd> {
 	tail: usize,
 	start_index: usize,
 	max_instructions: usize,
+	noisy: bool,
 }
 
 impl<'b> Iterator for GadgetIterator<'b, '_> {
@@ -182,7 +189,7 @@ impl<'b> Iterator for GadgetIterator<'b, '_> {
 				}
 
 				let current = &self.disassembly.instructions[index];
-				match is_gadget_head(current) {
+				match is_gadget_head(current, self.noisy) {
 					true => {
 						instructions.push(*current);
 						index += current.len()

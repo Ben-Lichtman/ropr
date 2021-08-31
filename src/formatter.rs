@@ -1,7 +1,5 @@
-use iced_x86::{FormatterOutput, FormatterTextKind};
-
 use colored::{ColoredString, Colorize};
-
+use iced_x86::{FormatterOutput, FormatterTextKind};
 use std::fmt::{Display, Formatter, Result};
 
 #[derive(Default)]
@@ -30,9 +28,15 @@ impl FormatterOutput for ColourFormatter {
 			FormatterTextKind::Function => text.red(),
 			FormatterTextKind::Mnemonic => text.yellow(),
 			FormatterTextKind::Prefix => text.yellow(),
+			FormatterTextKind::Keyword => match text {
+				"short" => text.red(),
+				_ => text.normal(),
+			},
 			FormatterTextKind::Register => match text {
 				"esp" => text.red(),
 				"rsp" => text.red(),
+				"eip" => text.red(),
+				"rip" => text.red(),
 				_ => text.normal(),
 			},
 			_ => text.normal(),

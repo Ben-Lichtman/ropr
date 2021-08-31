@@ -1,16 +1,20 @@
-use structopt::StructOpt;
-
-use regex::Regex;
-
 use rayon::prelude::*;
-
-use std::{collections::HashSet, path::PathBuf};
-
+use regex::Regex;
 use ropr::{binary::Binary, formatter::ColourFormatter, gadgets::Disassembly};
+use std::{
+	collections::HashSet,
+	io::{stdout, BufWriter, Write},
+	path::PathBuf,
+	time::Instant,
+};
+use structopt::StructOpt;
 
 #[derive(StructOpt)]
 #[structopt(name = "ropr")]
 struct Opt {
+	#[structopt(short = "n", long)]
+	noisy: bool,
+
 	#[structopt(short = "c", long)]
 	nocolour: bool,
 
@@ -33,12 +37,15 @@ struct Opt {
 }
 
 fn main() {
+	let start = Instant::now();
+
 	let opts = Opt::from_args();
 
 	let b = opts.binary;
 	let b = Binary::new(&b).unwrap();
 	let sections = b.sections().unwrap();
 
+	let noisy = opts.noisy;
 	let colour = !opts.nocolour;
 	let rop = !opts.norop;
 	let sys = !opts.nosys;
@@ -51,10 +58,12 @@ fn main() {
 		.iter()
 		.filter_map(|section| Disassembly::new(section))
 		.flat_map(|dis| {
-			let tails = dis.tails(rop, sys, jop).collect::<Vec<_>>();
+			let tails = dis.tails(rop, sys, jop, noisy).collect::<Vec<_>>();
 			tails
 				.into_par_iter()
-				.flat_map_iter(|tail| dis.gadgets_from_tail(tail, max_instructions_per_gadget))
+				.flat_map_iter(|tail| {
+					dis.gadgets_from_tail(tail, max_instructions_per_gadget, noisy)
+				})
 				.collect::<Vec<_>>()
 		})
 		.collect::<HashSet<_>>();
@@ -73,15 +82,20 @@ fn main() {
 		.collect::<Vec<_>>();
 	gadgets.sort_unstable_by(|(_, a), (_, b)| a.cmp(b));
 
-	let mut gadget_count = 0;
+	let gadget_count = gadgets.len();
+
+	// Don't account for time it takes to print gadgets - since this depends on terminal speed
+	let elapsed = Instant::now() - start;
+
+	// Stdout uses a LineWriter internally, therefore we improve performance by wrapping stdout in a BufWriter
+	let mut stdout = BufWriter::new(stdout());
 
 	if colour {
 		let mut output = ColourFormatter::new();
 		for (gadget, _) in gadgets {
 			output.clear();
 			gadget.format_full(&mut output);
-			println!("{}", output);
-			gadget_count += 1;
+			writeln!(stdout, "{}", output).unwrap();
 		}
 	}
 	else {
@@ -89,10 +103,15 @@ fn main() {
 		for (gadget, _) in gadgets {
 			output.clear();
 			gadget.format_full(&mut output);
-			println!("{}", output);
-			gadget_count += 1;
+			writeln!(stdout, "{}", output).unwrap();
 		}
 	}
 
-	println!("Found {} gadgets", gadget_count);
+	stdout.flush().unwrap();
+
+	eprintln!(
+		"\n==> Found {} gadgets in {:.3} seconds",
+		gadget_count,
+		elapsed.as_secs_f32()
+	);
 }
