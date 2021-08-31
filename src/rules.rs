@@ -14,7 +14,10 @@ fn is_jop(instr: &Instruction, noisy: bool) -> bool {
 	match instr.mnemonic() {
 		Mnemonic::Jmp => {
 			if noisy {
-				!matches!(instr.op0_kind(), OpKind::NearBranch64)
+				!matches!(
+					instr.op0_kind(),
+					OpKind::NearBranch64 | OpKind::NearBranch32 | OpKind::NearBranch16
+				)
 			}
 			else {
 				match instr.op0_kind() {
@@ -26,7 +29,10 @@ fn is_jop(instr: &Instruction, noisy: bool) -> bool {
 		}
 		Mnemonic::Call => {
 			if noisy {
-				!matches!(instr.op0_kind(), OpKind::NearBranch64)
+				!matches!(
+					instr.op0_kind(),
+					OpKind::NearBranch64 | OpKind::NearBranch32 | OpKind::NearBranch16
+				)
 			}
 			else {
 				match instr.op0_kind() {
