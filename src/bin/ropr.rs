@@ -1,3 +1,4 @@
+use core::panic;
 use rayon::prelude::*;
 use regex::Regex;
 use ropr::{binary::Binary, formatter::ColourFormatter, gadgets::Disassembly};
@@ -51,6 +52,10 @@ fn main() {
 	let sys = !opts.nosys;
 	let jop = !opts.nojop;
 	let max_instructions_per_gadget = opts.max_instr as usize;
+
+	if max_instructions_per_gadget == 0 {
+		panic!("Max instructions must be >0");
+	}
 
 	let regex = opts.regex.map(|r| Regex::new(&r).unwrap());
 

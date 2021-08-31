@@ -61,6 +61,7 @@ impl<'b> Disassembly<'b> {
 		max_instructions: usize,
 		noisy: bool,
 	) -> GadgetIterator {
+		assert!(max_instructions > 0);
 		let start_index = tail.saturating_sub((max_instructions - 1) * 15);
 		GadgetIterator {
 			disassembly: self,
@@ -183,7 +184,7 @@ impl<'b> Iterator for GadgetIterator<'b, '_> {
 
 			let mut index = self.start_index;
 			while index < self.tail {
-				if instructions.len() == self.max_instructions {
+				if instructions.len() == self.max_instructions - 1 {
 					self.start_index += 1;
 					continue 'outer;
 				}
