@@ -30,8 +30,10 @@ impl FormatterOutput for ColourFormatter {
 			FormatterTextKind::Prefix => text.yellow(),
 			FormatterTextKind::Keyword => text.normal(),
 			FormatterTextKind::Register => match text {
+				"sp" => text.red(),
 				"esp" => text.red(),
 				"rsp" => text.red(),
+				"ip" => text.red(),
 				"eip" => text.red(),
 				"rip" => text.red(),
 				_ => text.normal(),

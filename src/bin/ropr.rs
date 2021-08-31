@@ -29,6 +29,12 @@ struct Opt {
 	#[structopt(short = "j", long)]
 	nojop: bool,
 
+	#[structopt(short = "p", long)]
+	stack_pivot: bool,
+
+	#[structopt(short = "b", long)]
+	base_pivot: bool,
+
 	#[structopt(short, long, default_value = "6")]
 	max_instr: u8,
 
@@ -52,6 +58,8 @@ fn main() {
 	let rop = !opts.norop;
 	let sys = !opts.nosys;
 	let jop = !opts.nojop;
+	let stack_pivot = opts.stack_pivot;
+	let base_pivot = opts.base_pivot;
 	let max_instructions_per_gadget = opts.max_instr as usize;
 
 	if max_instructions_per_gadget == 0 {
@@ -85,6 +93,8 @@ fn main() {
 			Some(r) => r.is_match(formatted),
 			None => true,
 		})
+		.filter(|(g, _)| !stack_pivot | g.is_stack_pivot())
+		.filter(|(g, _)| !base_pivot | g.is_base_pivot())
 		.collect::<Vec<_>>();
 	gadgets.sort_unstable_by(|(_, a), (_, b)| a.cmp(b));
 

@@ -1,6 +1,9 @@
 use crate::{
 	disassembler::{Bitness, Disassembler},
-	rules::{is_gadget_head, is_gadget_tail},
+	rules::{
+		is_base_pivot_head, is_gadget_head, is_gadget_tail, is_stack_pivot_head,
+		is_stack_pivot_tail,
+	},
 	sections::Section,
 };
 use iced_x86::{Formatter, FormatterOutput, FormatterTextKind, Instruction};
@@ -110,6 +113,22 @@ impl Gadget {
 	pub fn _len(&self) -> usize { self.len }
 
 	pub fn instructions(&self) -> &[Instruction] { &self.instructions }
+
+	pub fn is_stack_pivot(&self) -> bool {
+		match self.instructions.as_slice() {
+			[] => false,
+			[t] => is_stack_pivot_tail(t),
+			[h @ .., _] => h.iter().any(|i| is_stack_pivot_head(i)),
+		}
+	}
+
+	pub fn is_base_pivot(&self) -> bool {
+		match self.instructions.as_slice() {
+			[] => false,
+			[_] => false,
+			[h @ .., _] => h.iter().any(|i| is_base_pivot_head(i)),
+		}
+	}
 
 	pub fn format_instruction(&self, output: &mut impl FormatterOutput) {
 		let mut formatter = iced_x86::IntelFormatter::new();

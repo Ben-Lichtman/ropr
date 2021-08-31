@@ -87,3 +87,117 @@ pub fn is_gadget_head(instr: &Instruction, noisy: bool) -> bool {
 		_ => false,
 	}
 }
+
+pub fn is_stack_pivot_head(instr: &Instruction) -> bool {
+	let reg0 = instr.op0_register();
+	let kind1 = instr.op1_kind();
+	let reg1 = instr.op1_register();
+	match instr.mnemonic() {
+		Mnemonic::Adc
+		| Mnemonic::Adcx
+		| Mnemonic::Add
+		| Mnemonic::Sbb
+		| Mnemonic::Sub
+		| Mnemonic::Bndmov
+		| Mnemonic::Cmova
+		| Mnemonic::Cmovae
+		| Mnemonic::Cmovb
+		| Mnemonic::Cmovbe
+		| Mnemonic::Cmove
+		| Mnemonic::Cmovg
+		| Mnemonic::Cmovge
+		| Mnemonic::Cmovl
+		| Mnemonic::Cmovle
+		| Mnemonic::Cmovne
+		| Mnemonic::Cmovno
+		| Mnemonic::Cmovnp
+		| Mnemonic::Cmovns
+		| Mnemonic::Cmovo
+		| Mnemonic::Cmovp
+		| Mnemonic::Cmovs
+		| Mnemonic::Cmpxchg
+		| Mnemonic::Cmpxchg16b
+		| Mnemonic::Cmpxchg8b
+		| Mnemonic::Pop
+		| Mnemonic::Popa
+		| Mnemonic::Popad => {
+			matches!(reg0, Register::RSP | Register::ESP | Register::SP)
+				&& matches!(
+					kind1,
+					OpKind::Immediate8
+						| OpKind::Immediate8_2nd | OpKind::Immediate16
+						| OpKind::Immediate32 | OpKind::Immediate64
+						| OpKind::Immediate8to16 | OpKind::Immediate8to32
+						| OpKind::Immediate8to64 | OpKind::Immediate32to64
+						| OpKind::Register
+				)
+		}
+		Mnemonic::Mov | Mnemonic::Movbe | Mnemonic::Movd => {
+			matches!(reg0, Register::RSP | Register::ESP | Register::SP)
+				&& (matches!(kind1, OpKind::Register) || instr.memory_base() != Register::None)
+		}
+		Mnemonic::Xadd | Mnemonic::Xchg => {
+			matches!(reg0, Register::RSP | Register::ESP | Register::SP)
+				|| matches!(reg1, Register::RSP | Register::ESP | Register::SP)
+		}
+		_ => false,
+	}
+}
+
+pub fn is_stack_pivot_tail(instr: &Instruction) -> bool { is_ret(instr) }
+
+pub fn is_base_pivot_head(instr: &Instruction) -> bool {
+	let reg0 = instr.op0_register();
+	let kind1 = instr.op1_kind();
+	let reg1 = instr.op1_register();
+	match instr.mnemonic() {
+		Mnemonic::Adc
+		| Mnemonic::Adcx
+		| Mnemonic::Add
+		| Mnemonic::Sbb
+		| Mnemonic::Sub
+		| Mnemonic::Bndmov
+		| Mnemonic::Cmova
+		| Mnemonic::Cmovae
+		| Mnemonic::Cmovb
+		| Mnemonic::Cmovbe
+		| Mnemonic::Cmove
+		| Mnemonic::Cmovg
+		| Mnemonic::Cmovge
+		| Mnemonic::Cmovl
+		| Mnemonic::Cmovle
+		| Mnemonic::Cmovne
+		| Mnemonic::Cmovno
+		| Mnemonic::Cmovnp
+		| Mnemonic::Cmovns
+		| Mnemonic::Cmovo
+		| Mnemonic::Cmovp
+		| Mnemonic::Cmovs
+		| Mnemonic::Cmpxchg
+		| Mnemonic::Cmpxchg16b
+		| Mnemonic::Cmpxchg8b
+		| Mnemonic::Pop
+		| Mnemonic::Popa
+		| Mnemonic::Popad => {
+			matches!(reg0, Register::RBP | Register::EBP | Register::BP)
+				&& matches!(
+					kind1,
+					OpKind::Immediate8
+						| OpKind::Immediate8_2nd | OpKind::Immediate16
+						| OpKind::Immediate32 | OpKind::Immediate64
+						| OpKind::Immediate8to16 | OpKind::Immediate8to32
+						| OpKind::Immediate8to64 | OpKind::Immediate32to64
+						| OpKind::Register
+				)
+		}
+		Mnemonic::Mov | Mnemonic::Movbe | Mnemonic::Movd => {
+			matches!(reg0, Register::RBP | Register::EBP | Register::BP)
+				&& (matches!(kind1, OpKind::Register) || instr.memory_base() != Register::None)
+		}
+		Mnemonic::Xadd | Mnemonic::Xchg => {
+			matches!(reg0, Register::RBP | Register::EBP | Register::BP)
+				|| matches!(reg1, Register::RBP | Register::EBP | Register::BP)
+		}
+		_ => false,
+	}
+}
