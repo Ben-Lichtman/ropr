@@ -83,14 +83,26 @@ ARGS:
 - `max-instr`- Maximum number of instructions in a gadget
 - `regex` - Perform a regex search on the returned gadgets for easy filtering
 
-For example if I was looking for a good stack-pivot I may choose to filter by the regex `^add esp, ...;`:
+For example if I was looking for a way to fill `rax` with a value from another register I may choose to filter by the regex `^mov eax, ...;`:
 
 ```
-❯ ropr libc-2.32-5-x86_64.so -R "^add esp, ...;"
-0x000e5e9b: add esp, eax; mov [r11+0x2C], r12d; pop r12; pop r13; pop r14; pop r15; ret;
-0x0003eb41: add esp, edi; mov rdx, rbp; mov rsi, r12; mov rdi, r13; call rbx;
+❯ ropr /usr/lib/libc.so.6 -R "^mov eax, ...;" > /dev/null
 
-==> Found 2 gadgets in 0.131 seconds
+==> Found 197 gadgets in 0.118 seconds
 ```
 
-Now I have a good stack-pivot candidate at address `0x000e5e9b`
+Now I can add some filters to the command line for the highest quality results:
+
+```
+❯ ropr /usr/lib/libc.so.6 -m 2 -j -s -R "^mov eax, ...;"
+0x000353e7: mov eax, eax; ret;
+0x000788c8: mov eax, ecx; ret;
+0x00052252: mov eax, edi; ret;
+0x0003ae43: mov eax, edx; ret;
+0x000353e6: mov eax, r8d; ret;
+0x000788c7: mov eax, r9d; ret;
+
+==> Found 6 gadgets in 0.046 seconds
+```
+
+Now I have a good `mov` gadget candidate at address `0x00052252`
