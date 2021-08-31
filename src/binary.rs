@@ -1,11 +1,9 @@
-use std::{fs::read, path::Path};
-
-use goblin::Object;
-
 use crate::{
 	error::Result,
 	sections::{parse_archive, parse_blob, parse_elf, parse_mach, parse_pe, Section},
 };
+use goblin::Object;
+use std::{fs::read, path::Path};
 
 pub struct Binary<'p> {
 	path: &'p Path,

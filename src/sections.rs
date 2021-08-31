@@ -1,3 +1,4 @@
+use crate::error::Result;
 use goblin::{
 	archive::Archive,
 	elf::Elf,
@@ -5,8 +6,6 @@ use goblin::{
 	mach::Mach,
 	pe::{section_table::IMAGE_SCN_MEM_EXECUTE, PE},
 };
-
-use crate::error::Result;
 
 pub struct Section<'b> {
 	file_offset: usize,
