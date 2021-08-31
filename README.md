@@ -71,7 +71,7 @@ ARGS:
     <binary>
 ```
 
-- `noisy` - includes poentially low-quality gadgets such as prefixes, conditional branches, and near branches (will find significantly more gadgets)
+- `noisy` - includes potentially low-quality gadgets such as prefixes, conditional branches, and near branches (will find significantly more gadgets)
 - `nojop` - removes "JOP Gadgets" - these may have a controllable branch, call, etc. instead of a simple `ret` at the end
 - `norop` - removes normal "ROP Gadgets"
 - `nosys` - removes syscalls and other interrupts
