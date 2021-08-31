@@ -1,3 +1,4 @@
+use colored::control::set_override;
 use core::panic;
 use rayon::prelude::*;
 use regex::Regex;
@@ -17,7 +18,7 @@ struct Opt {
 	noisy: bool,
 
 	#[structopt(short = "c", long)]
-	nocolour: bool,
+	colour: Option<bool>,
 
 	#[structopt(short = "r", long)]
 	norop: bool,
@@ -47,7 +48,7 @@ fn main() {
 	let sections = b.sections().unwrap();
 
 	let noisy = opts.noisy;
-	let colour = !opts.nocolour;
+	let colour = opts.colour;
 	let rop = !opts.norop;
 	let sys = !opts.nosys;
 	let jop = !opts.nojop;
@@ -95,21 +96,15 @@ fn main() {
 	// Stdout uses a LineWriter internally, therefore we improve performance by wrapping stdout in a BufWriter
 	let mut stdout = BufWriter::new(stdout());
 
-	if colour {
-		let mut output = ColourFormatter::new();
-		for (gadget, _) in gadgets {
-			output.clear();
-			gadget.format_full(&mut output);
-			writeln!(stdout, "{}", output).unwrap();
-		}
+	if let Some(colour) = colour {
+		set_override(colour);
 	}
-	else {
-		let mut output = String::new();
-		for (gadget, _) in gadgets {
-			output.clear();
-			gadget.format_full(&mut output);
-			writeln!(stdout, "{}", output).unwrap();
-		}
+
+	let mut output = ColourFormatter::new();
+	for (gadget, _) in gadgets {
+		output.clear();
+		gadget.format_full(&mut output);
+		writeln!(stdout, "{}", output).unwrap();
 	}
 
 	stdout.flush().unwrap();

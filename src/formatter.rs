@@ -28,10 +28,7 @@ impl FormatterOutput for ColourFormatter {
 			FormatterTextKind::Function => text.red(),
 			FormatterTextKind::Mnemonic => text.yellow(),
 			FormatterTextKind::Prefix => text.yellow(),
-			FormatterTextKind::Keyword => match text {
-				"short" => text.red(),
-				_ => text.normal(),
-			},
+			FormatterTextKind::Keyword => text.normal(),
 			FormatterTextKind::Register => match text {
 				"esp" => text.red(),
 				"rsp" => text.red(),
