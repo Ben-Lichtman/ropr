@@ -70,7 +70,7 @@ fn main() {
 
 	let gadgets = sections
 		.iter()
-		.filter_map(|section| Disassembly::new(section))
+		.filter_map(Disassembly::new)
 		.flat_map(|dis| {
 			let tails = dis.tails(rop, sys, jop, noisy).collect::<Vec<_>>();
 			tails

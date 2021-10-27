@@ -118,7 +118,7 @@ impl Gadget {
 		match self.instructions.as_slice() {
 			[] => false,
 			[t] => is_stack_pivot_tail(t),
-			[h @ .., _] => h.iter().any(|i| is_stack_pivot_head(i)),
+			[h @ .., _] => h.iter().any(is_stack_pivot_head),
 		}
 	}
 
@@ -126,7 +126,7 @@ impl Gadget {
 		match self.instructions.as_slice() {
 			[] => false,
 			[_] => false,
-			[h @ .., _] => h.iter().any(|i| is_base_pivot_head(i)),
+			[h @ .., _] => h.iter().any(is_base_pivot_head),
 		}
 	}
 
