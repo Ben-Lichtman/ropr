@@ -67,7 +67,7 @@ pub fn is_gadget_tail(instr: &Instruction, rop: bool, sys: bool, jop: bool, nois
 	false
 }
 
-pub fn is_gadget_head(instr: &Instruction, noisy: bool) -> bool {
+pub fn is_rop_gadget_head(instr: &Instruction, noisy: bool) -> bool {
 	if is_invalid(instr) {
 		return false;
 	}
@@ -83,7 +83,9 @@ pub fn is_gadget_head(instr: &Instruction, noisy: bool) -> bool {
 	}
 	match instr.flow_control() {
 		FlowControl::Next => true,
+		FlowControl::Interrupt => true,
 		FlowControl::ConditionalBranch => noisy,
+		FlowControl::Call => instr.mnemonic() != Mnemonic::Call,
 		_ => false,
 	}
 }

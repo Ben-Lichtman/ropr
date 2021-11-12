@@ -1,7 +1,7 @@
 use crate::{
 	disassembler::{Bitness, Disassembler},
 	rules::{
-		is_base_pivot_head, is_gadget_head, is_gadget_tail, is_stack_pivot_head,
+		is_base_pivot_head, is_gadget_tail, is_rop_gadget_head, is_stack_pivot_head,
 		is_stack_pivot_tail,
 	},
 	sections::Section,
@@ -210,7 +210,7 @@ impl<'b> Iterator for GadgetIterator<'b, '_> {
 				}
 
 				let current = &self.disassembly.instructions[index];
-				match is_gadget_head(current, self.noisy) {
+				match is_rop_gadget_head(current, self.noisy) {
 					true => {
 						instructions.push(*current);
 						index += current.len()
