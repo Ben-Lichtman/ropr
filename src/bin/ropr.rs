@@ -94,7 +94,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 			g.format_instruction(&mut formatted);
 			(g, formatted)
 		})
-		.filter(|(_, formatted)| regices.iter().any(|r| r.is_match(formatted)))
+		.filter(|(_, formatted)| regices.iter().all(|r| r.is_match(formatted)))
 		.filter(|(g, _)| !stack_pivot | g.is_stack_pivot())
 		.filter(|(g, _)| !base_pivot | g.is_base_pivot())
 		.collect::<Vec<_>>();
