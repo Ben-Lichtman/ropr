@@ -5,6 +5,12 @@ use std::{
 	path::{Path, PathBuf},
 };
 
+#[derive(Debug, Clone, Copy)]
+pub enum Bitness {
+	Bits32,
+	Bits64,
+}
+
 pub struct Binary {
 	path: PathBuf,
 	bytes: Vec<u8>,
@@ -23,6 +29,12 @@ impl<'p> Binary {
 	pub fn sections(&self) -> Result<Vec<Section>> {
 		match Object::parse(&self.bytes)? {
 			Object::Elf(e) => {
+				let bitness = if e.is_64 {
+					Bitness::Bits32
+				}
+				else {
+					Bitness::Bits64
+				};
 				let sections = e
 					.program_headers
 					.iter()
@@ -35,12 +47,19 @@ impl<'p> Binary {
 							section_vaddr: header.p_vaddr as usize,
 							program_base: 0,
 							bytes: &self.bytes[start_offset..end_offset],
+							bitness,
 						}
 					})
 					.collect::<Vec<_>>();
 				Ok(sections)
 			}
 			Object::PE(p) => {
+				let bitness = if p.is_64 {
+					Bitness::Bits64
+				}
+				else {
+					Bitness::Bits32
+				};
 				let sections = p
 					.sections
 					.iter()
@@ -53,6 +72,7 @@ impl<'p> Binary {
 							section_vaddr: section.virtual_address as usize,
 							program_base: p.image_base,
 							bytes: &self.bytes[start_offset..end_offset],
+							bitness,
 						}
 					})
 					.collect::<Vec<_>>();
@@ -63,6 +83,7 @@ impl<'p> Binary {
 				section_vaddr: 0,
 				program_base: 0,
 				bytes: &self.bytes,
+				bitness: Bitness::Bits64,
 			}]),
 			_ => Err(Error::Unsupported),
 		}
@@ -73,6 +94,7 @@ pub struct Section<'b> {
 	file_offset: usize,
 	section_vaddr: usize,
 	program_base: usize,
+	bitness: Bitness,
 	bytes: &'b [u8],
 }
 
@@ -82,6 +104,8 @@ impl Section<'_> {
 	pub fn section_vaddr(&self) -> usize { self.section_vaddr }
 
 	pub fn program_base(&self) -> usize { self.program_base }
+
+	pub fn bitness(&self) -> Bitness { self.bitness }
 
 	pub fn bytes(&self) -> &[u8] { self.bytes }
 }

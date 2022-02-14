@@ -1,11 +1,9 @@
-use crate::{binary::Section, gadgets::GadgetIterator, rules::is_gadget_tail};
+use crate::{
+	binary::{Bitness, Section},
+	gadgets::GadgetIterator,
+	rules::is_gadget_tail,
+};
 use iced_x86::{Decoder, DecoderOptions, Instruction};
-
-pub enum Bitness {
-	Bits16,
-	Bits32,
-	Bits64,
-}
 
 pub struct Disassembler<'b> {
 	decoder: Decoder<'b>,
@@ -15,7 +13,6 @@ impl<'b> Disassembler<'b> {
 	pub fn new(bitness: Bitness, bytes: &'b [u8]) -> Self {
 		let decoder = {
 			let bitness = match bitness {
-				Bitness::Bits16 => 16,
 				Bitness::Bits32 => 32,
 				Bitness::Bits64 => 64,
 			};
@@ -47,7 +44,7 @@ impl<'b> Disassembly<'b> {
 		}
 
 		let mut instructions = vec![Instruction::default(); bytes.len()];
-		let mut disassembler = Disassembler::new(Bitness::Bits64, bytes);
+		let mut disassembler = Disassembler::new(section.bitness(), bytes);
 
 		// Fully disassemble program - cache for later backtracking of tails
 		instructions
