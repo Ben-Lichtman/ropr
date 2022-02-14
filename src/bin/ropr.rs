@@ -77,9 +77,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 		.iter()
 		.filter_map(Disassembly::new)
 		.flat_map(|dis| {
-			let tails = dis.tails(rop, sys, jop, noisy).collect::<Vec<_>>();
-			tails
+			(0..dis.bytes().len())
 				.into_par_iter()
+				.filter(|offset| dis.is_tail_at(*offset, rop, sys, jop, noisy))
 				.flat_map_iter(|tail| {
 					dis.gadgets_from_tail(tail, max_instructions_per_gadget, noisy)
 				})

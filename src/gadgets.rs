@@ -1,9 +1,6 @@
 use crate::{
 	disassembler::Disassembly,
-	rules::{
-		is_base_pivot_head, is_gadget_tail, is_rop_gadget_head, is_stack_pivot_head,
-		is_stack_pivot_tail,
-	},
+	rules::{is_base_pivot_head, is_rop_gadget_head, is_stack_pivot_head, is_stack_pivot_tail},
 };
 use iced_x86::{Formatter, FormatterOutput, FormatterTextKind, Instruction};
 use std::{
@@ -92,52 +89,6 @@ impl Gadget {
 			FormatterTextKind::Function,
 		);
 		self.format_instruction(output);
-	}
-}
-
-pub struct TailsIter<'b, 'd> {
-	disassembly: &'d Disassembly<'b>,
-	rop: bool,
-	sys: bool,
-	jop: bool,
-	noisy: bool,
-	index: usize,
-}
-
-impl<'b, 'd> TailsIter<'b, 'd> {
-	pub fn new(
-		disassembly: &'d Disassembly<'b>,
-		rop: bool,
-		sys: bool,
-		jop: bool,
-		noisy: bool,
-	) -> Self {
-		Self {
-			disassembly,
-			rop,
-			sys,
-			jop,
-			noisy,
-			index: 0,
-		}
-	}
-}
-
-impl Iterator for TailsIter<'_, '_> {
-	type Item = usize;
-
-	fn next(&mut self) -> Option<Self::Item> {
-		while let Some(instr) = self.disassembly.instruction(self.index) {
-			if is_gadget_tail(instr, self.rop, self.sys, self.jop, self.noisy) {
-				let tail = self.index;
-				self.index += 1;
-				return Some(tail);
-			}
-			else {
-				self.index += 1;
-			}
-		}
-		None
 	}
 }
 

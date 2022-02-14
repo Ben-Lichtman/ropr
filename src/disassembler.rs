@@ -1,7 +1,4 @@
-use crate::{
-	binary::Section,
-	gadgets::{GadgetIterator, TailsIter},
-};
+use crate::{binary::Section, gadgets::GadgetIterator, rules::is_gadget_tail};
 use iced_x86::{Decoder, DecoderOptions, Instruction};
 
 pub enum Bitness {
@@ -36,7 +33,7 @@ impl<'b> Disassembler<'b> {
 }
 
 pub struct Disassembly<'b> {
-	_bytes: &'b [u8],
+	bytes: &'b [u8],
 	instructions: Vec<Instruction>,
 	file_offset: usize,
 }
@@ -52,28 +49,34 @@ impl<'b> Disassembly<'b> {
 		let mut instructions = vec![Instruction::default(); bytes.len()];
 		let mut disassembler = Disassembler::new(Bitness::Bits64, bytes);
 
-		// Fully disassemble program
-		for (start, instruction) in instructions.iter_mut().enumerate().take(bytes.len()) {
-			disassembler.decode_at_offset(
-				(section.program_base() + section.section_vaddr() + start) as u64,
-				start,
-				instruction,
-			)
-		}
+		// Fully disassemble program - cache for later backtracking of tails
+		instructions
+			.iter_mut()
+			.enumerate()
+			.for_each(|(n, instruction)| {
+				disassembler.decode_at_offset(
+					(section.program_base() + section.section_vaddr() + n) as u64,
+					n,
+					instruction,
+				)
+			});
 
 		Some(Self {
-			_bytes: bytes,
+			bytes,
 			instructions,
 			file_offset: section.program_base() + section.section_vaddr(),
 		})
 	}
 
+	pub fn bytes(&self) -> &[u8] { self.bytes }
+
 	pub fn file_offset(&self) -> usize { self.file_offset }
 
 	pub fn instruction(&self, index: usize) -> Option<&Instruction> { self.instructions.get(index) }
 
-	pub fn tails<'d>(&'d self, rop: bool, sys: bool, jop: bool, noisy: bool) -> TailsIter<'d, 'b> {
-		TailsIter::new(self, rop, sys, jop, noisy)
+	pub fn is_tail_at(&self, index: usize, rop: bool, sys: bool, jop: bool, noisy: bool) -> bool {
+		let instruction = self.instructions[index];
+		is_gadget_tail(&instruction, rop, sys, jop, noisy)
 	}
 
 	pub fn gadgets_from_tail(
