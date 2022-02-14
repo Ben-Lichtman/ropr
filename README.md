@@ -52,36 +52,35 @@ the application will install to `~/.cargo/bin`
 
 ```
 USAGE:
-    ropr [FLAGS] [OPTIONS] <binary>
-
-FLAGS:
-    -b, --base-pivot     
-    -h, --help           Prints help information
-    -n, --noisy          
-    -j, --nojop          
-    -r, --norop          
-    -s, --nosys          
-    -p, --stack-pivot    
-    -V, --version        Prints version information
-
-OPTIONS:
-    -c, --colour <colour>          
-    -m, --max-instr <max-instr>     [default: 6]
-    -R, --regex <regex>            
+    ropr [OPTIONS] <BINARY>
 
 ARGS:
-    <binary>
+    <BINARY>    
+
+OPTIONS:
+    -b, --base-pivot               
+    -c, --colour <COLOUR>          
+    -h, --help                     Print help information
+    -j, --nojop                    
+    -m, --max-instr <MAX_INSTR>    [default: 6]
+    -n, --noisy                    
+    -p, --stack-pivot              
+    -r, --norop                    
+    -R, --regex <REGEX>            
+        --raw <RAW>                
+    -s, --nosys 
 ```
 
-- `noisy` - Includes potentially low-quality gadgets such as prefixes, conditional branches, and near branches (will find significantly more gadgets)
-- `nojop` - Removes "JOP Gadgets" - these may have a controllable branch, call, etc. instead of a simple `ret` at the end
-- `norop` - Removes normal "ROP Gadgets"
-- `nosys` - Removes syscalls and other interrupts
 - `base-pivot` - Filters for gadgets which alter the base pointer
-- `stack-pivot` - Filters for gadgets which alter the stack pointer
 - `colour` - Forces output to be in colour or plain text
+- `nojop` - Removes "JOP Gadgets" - these may have a controllable branch, call, etc. instead of a simple `ret` at the end
 - `max-instr`- Maximum number of instructions in a gadget
+- `noisy` - Includes potentially low-quality gadgets such as prefixes, conditional branches, and near branches (will find significantly more gadgets)
+- `stack-pivot` - Filters for gadgets which alter the stack pointer
+- `norop` - Removes normal "ROP Gadgets"
 - `regex` - Perform a regex search on the returned gadgets for easy filtering
+- `raw` - treats the input file as a blob of code
+- `nosys` - Removes syscalls and other interrupts
 
 For example if I was looking for a way to fill `rax` with a value from another register I may choose to filter by the regex `^mov eax, ...;`:
 
