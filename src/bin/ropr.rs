@@ -6,6 +6,7 @@ use regex::Regex;
 use ropr::{binary::Binary, formatter::ColourFormatter, gadgets::Disassembly};
 use std::{
 	collections::HashSet,
+	error::Error,
 	io::{stdout, BufWriter, Write},
 	path::PathBuf,
 	time::Instant,
@@ -39,19 +40,19 @@ struct Opt {
 	max_instr: u8,
 
 	#[clap(short = 'R', long)]
-	regex: Option<String>,
+	regex: Vec<String>,
 
 	binary: PathBuf,
 }
 
-fn main() {
+fn main() -> Result<(), Box<dyn Error>> {
 	let start = Instant::now();
 
 	let opts = Opt::parse();
 
 	let b = opts.binary;
-	let b = Binary::new(&b).unwrap();
-	let sections = b.sections().unwrap();
+	let b = Binary::new(&b)?;
+	let sections = b.sections()?;
 
 	let noisy = opts.noisy;
 	let colour = opts.colour;
@@ -66,7 +67,11 @@ fn main() {
 		panic!("Max instructions must be >0");
 	}
 
-	let regex = opts.regex.map(|r| Regex::new(&r).unwrap());
+	let regices = opts
+		.regex
+		.into_iter()
+		.map(|r| Regex::new(&r))
+		.collect::<Result<Vec<_>, _>>()?;
 
 	let gadgets = sections
 		.iter()
@@ -89,10 +94,7 @@ fn main() {
 			g.format_instruction(&mut formatted);
 			(g, formatted)
 		})
-		.filter(|(_, formatted)| match &regex {
-			Some(r) => r.is_match(formatted),
-			None => true,
-		})
+		.filter(|(_, formatted)| regices.iter().any(|r| r.is_match(formatted)))
 		.filter(|(g, _)| !stack_pivot | g.is_stack_pivot())
 		.filter(|(g, _)| !base_pivot | g.is_base_pivot())
 		.collect::<Vec<_>>();
@@ -124,4 +126,6 @@ fn main() {
 		gadget_count,
 		elapsed.as_secs_f32()
 	);
+
+	Ok(())
 }
