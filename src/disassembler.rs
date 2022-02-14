@@ -32,6 +32,7 @@ impl<'b> Disassembler<'b> {
 }
 
 pub struct Disassembly<'b> {
+	section: &'b Section<'b>,
 	bytes: &'b [u8],
 	instructions: Vec<Instruction>,
 	file_offset: usize,
@@ -61,6 +62,7 @@ impl<'b> Disassembly<'b> {
 			});
 
 		Some(Self {
+			section,
 			bytes,
 			instructions,
 			file_offset: section.program_base() + section.section_vaddr(),
@@ -80,12 +82,22 @@ impl<'b> Disassembly<'b> {
 
 	pub fn gadgets_from_tail(
 		&self,
-		tail: usize,
+		tail_index: usize,
 		max_instructions: usize,
 		noisy: bool,
 	) -> GadgetIterator {
 		assert!(max_instructions > 0);
-		let start_index = tail.saturating_sub((max_instructions - 1) * MAX_INSTRUCTION_LENGTH);
-		GadgetIterator::new(self, tail, max_instructions, noisy, start_index)
+		let start_index =
+			tail_index.saturating_sub((max_instructions - 1) * MAX_INSTRUCTION_LENGTH);
+		let predecessors = &self.instructions[start_index..tail_index];
+		let tail_instruction = self.instructions[tail_index];
+		GadgetIterator::new(
+			self.section.program_base() + self.section.section_vaddr(),
+			tail_instruction,
+			predecessors,
+			max_instructions,
+			noisy,
+			start_index,
+		)
 	}
 }

@@ -38,10 +38,10 @@ impl<'p> Binary {
 			Some(false) => match Object::parse(&self.bytes)? {
 				Object::Elf(e) => {
 					let bitness = if e.is_64 {
-						Bitness::Bits32
+						Bitness::Bits64
 					}
 					else {
-						Bitness::Bits64
+						Bitness::Bits32
 					};
 					let sections = e
 						.program_headers
@@ -93,10 +93,10 @@ impl<'p> Binary {
 			None => match Object::parse(&self.bytes)? {
 				Object::Elf(e) => {
 					let bitness = if e.is_64 {
-						Bitness::Bits32
+						Bitness::Bits64
 					}
 					else {
-						Bitness::Bits64
+						Bitness::Bits32
 					};
 					let sections = e
 						.program_headers
@@ -146,7 +146,7 @@ impl<'p> Binary {
 					section_vaddr: 0,
 					program_base: 0,
 					bytes: &self.bytes,
-					bitness: Bitness::Bits64,
+					bitness: Bitness::Bits32,
 				}]),
 			},
 		}

@@ -1,6 +1,5 @@
-use crate::{
-	disassembler::Disassembly,
-	rules::{is_base_pivot_head, is_rop_gadget_head, is_stack_pivot_head, is_stack_pivot_tail},
+use crate::rules::{
+	is_base_pivot_head, is_rop_gadget_head, is_stack_pivot_head, is_stack_pivot_tail,
 };
 use iced_x86::{Formatter, FormatterOutput, FormatterTextKind, Instruction};
 use std::{
@@ -8,9 +7,9 @@ use std::{
 	hash::{Hash, Hasher},
 };
 
+#[derive(Debug)]
 pub struct Gadget {
 	file_offset: usize,
-	len: usize,
 	instructions: Vec<Instruction>,
 }
 
@@ -41,8 +40,6 @@ impl Ord for Gadget {
 
 impl Gadget {
 	pub fn file_offset(&self) -> usize { self.file_offset }
-
-	pub fn _len(&self) -> usize { self.len }
 
 	pub fn instructions(&self) -> &[Instruction] { &self.instructions }
 
@@ -92,25 +89,28 @@ impl Gadget {
 	}
 }
 
-pub struct GadgetIterator<'b, 'd> {
-	disassembly: &'d Disassembly<'b>,
-	tail: usize,
+pub struct GadgetIterator<'d> {
+	section_start: usize,
+	tail_instruction: Instruction,
+	predecessors: &'d [Instruction],
 	max_instructions: usize,
 	noisy: bool,
 	start_index: usize,
 }
 
-impl<'b, 'd> GadgetIterator<'b, 'd> {
+impl<'d> GadgetIterator<'d> {
 	pub fn new(
-		disassembly: &'d Disassembly<'b>,
-		tail: usize,
+		section_start: usize,
+		tail_instruction: Instruction,
+		predecessors: &'d [Instruction],
 		max_instructions: usize,
 		noisy: bool,
 		start_index: usize,
 	) -> Self {
 		Self {
-			disassembly,
-			tail,
+			section_start,
+			tail_instruction,
+			predecessors,
 			max_instructions,
 			noisy,
 			start_index,
@@ -118,48 +118,43 @@ impl<'b, 'd> GadgetIterator<'b, 'd> {
 	}
 }
 
-impl<'b> Iterator for GadgetIterator<'b, '_> {
+impl Iterator for GadgetIterator<'_> {
 	type Item = Gadget;
 
 	fn next(&mut self) -> Option<Self::Item> {
-		'outer: while self.start_index <= self.tail {
-			let mut instructions = Vec::with_capacity(self.tail - self.start_index + 1);
+		let mut instructions = Vec::new();
 
-			let mut index = self.start_index;
-			while index < self.tail {
-				if instructions.len() == self.max_instructions - 1 {
+		'outer: while !self.predecessors.is_empty() {
+			instructions.clear();
+			let len = self.predecessors.len();
+			let mut index = 0;
+			while index < len && instructions.len() < self.max_instructions - 1 {
+				let instruction = self.predecessors[index];
+				if !is_rop_gadget_head(&instruction, self.noisy) {
+					// Found a bad
+					self.predecessors = &self.predecessors[1..];
 					self.start_index += 1;
 					continue 'outer;
 				}
-
-				let current = *self.disassembly.instruction(index).unwrap();
-				match is_rop_gadget_head(&current, self.noisy) {
-					true => {
-						instructions.push(current);
-						index += current.len()
-					}
-					false => {
-						self.start_index += 1;
-						continue 'outer;
-					}
-				}
+				instructions.push(instruction);
+				index += instruction.len();
 			}
 
-			if index == self.tail {
-				instructions.push(*self.disassembly.instruction(self.tail).unwrap());
-				let extra_len = self.disassembly.instruction(self.tail).unwrap().len();
-				let gadget = Gadget {
-					file_offset: self.disassembly.file_offset() + self.start_index,
-					len: self.tail + extra_len - self.start_index,
+			let current_start_index = self.start_index;
+
+			self.predecessors = &self.predecessors[1..];
+			self.start_index += 1;
+
+			if index == len {
+				instructions.push(self.tail_instruction);
+				// instructions.shrink_to_fit();
+				return Some(Gadget {
+					file_offset: self.section_start + current_start_index,
 					instructions,
-				};
-				self.start_index += 1;
-				return Some(gadget);
-			}
-			else {
-				self.start_index += 1;
+				});
 			}
 		}
+
 		None
 	}
 }

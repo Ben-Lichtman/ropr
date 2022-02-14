@@ -122,7 +122,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 		writeln!(stdout, "{}", output).unwrap();
 	}
 
-	stdout.flush().unwrap();
+	drop(stdout);
 
 	eprintln!(
 		"\n==> Found {} gadgets in {:.3} seconds",
