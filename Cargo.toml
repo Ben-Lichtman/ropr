@@ -9,10 +9,9 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 thiserror = "1.0.30"
-goblin = "0.4.3"
-iced-x86 = "1.15.0"
+goblin = "0.5.1"
+iced-x86 = "1.16.0"
 colored = "2.0.0"
-structopt = "0.3.25"
 regex = "1.5.4"
 rayon = "1.5.1"
 clap = { version = "3.0.14", features = ["derive"] }
