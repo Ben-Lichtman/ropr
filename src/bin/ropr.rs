@@ -3,7 +3,7 @@ use colored::control::set_override;
 use core::panic;
 use rayon::prelude::*;
 use regex::Regex;
-use ropr::{binary::Binary, formatter::ColourFormatter, gadgets::Disassembly};
+use ropr::{binary::Binary, disassembler::Disassembly, formatter::ColourFormatter};
 use std::{
 	collections::HashSet,
 	error::Error,

@@ -1,6 +1,5 @@
 use crate::{
-	binary::Section,
-	disassembler::{Bitness, Disassembler},
+	disassembler::Disassembly,
 	rules::{
 		is_base_pivot_head, is_gadget_tail, is_rop_gadget_head, is_stack_pivot_head,
 		is_stack_pivot_tail,
@@ -11,70 +10,6 @@ use std::{
 	cmp::Ordering,
 	hash::{Hash, Hasher},
 };
-
-pub struct Disassembly<'b> {
-	_bytes: &'b [u8],
-	instructions: Vec<Instruction>,
-	file_offset: usize,
-}
-
-impl<'b> Disassembly<'b> {
-	pub fn new(section: &'b Section) -> Option<Self> {
-		let bytes = section.bytes();
-
-		if bytes.is_empty() {
-			return None;
-		}
-
-		let mut instructions = vec![Instruction::default(); bytes.len()];
-		let mut disassembler = Disassembler::new(Bitness::Bits64, bytes);
-
-		// Fully disassemble program
-		for (start, instruction) in instructions.iter_mut().enumerate().take(bytes.len()) {
-			disassembler.decode_at_offset(
-				(section.program_base() + section.section_vaddr() + start) as u64,
-				start,
-				instruction,
-			)
-		}
-
-		Some(Self {
-			_bytes: bytes,
-			instructions,
-			file_offset: section.program_base() + section.section_vaddr(),
-		})
-	}
-
-	pub fn instruction(&self, index: usize) -> &Instruction { &self.instructions[index] }
-
-	pub fn tails<'d>(&'d self, rop: bool, sys: bool, jop: bool, noisy: bool) -> TailsIter<'d, 'b> {
-		TailsIter {
-			disassembly: self,
-			rop,
-			sys,
-			jop,
-			noisy,
-			index: 0,
-		}
-	}
-
-	pub fn gadgets_from_tail(
-		&self,
-		tail: usize,
-		max_instructions: usize,
-		noisy: bool,
-	) -> GadgetIterator {
-		assert!(max_instructions > 0);
-		let start_index = tail.saturating_sub((max_instructions - 1) * 15);
-		GadgetIterator {
-			disassembly: self,
-			tail,
-			start_index,
-			max_instructions,
-			noisy,
-		}
-	}
-}
 
 pub struct Gadget {
 	file_offset: usize,
@@ -169,11 +104,30 @@ pub struct TailsIter<'b, 'd> {
 	index: usize,
 }
 
+impl<'b, 'd> TailsIter<'b, 'd> {
+	pub fn new(
+		disassembly: &'d Disassembly<'b>,
+		rop: bool,
+		sys: bool,
+		jop: bool,
+		noisy: bool,
+	) -> Self {
+		Self {
+			disassembly,
+			rop,
+			sys,
+			jop,
+			noisy,
+			index: 0,
+		}
+	}
+}
+
 impl Iterator for TailsIter<'_, '_> {
 	type Item = usize;
 
 	fn next(&mut self) -> Option<Self::Item> {
-		while let Some(instr) = self.disassembly.instructions.get(self.index) {
+		while let Some(instr) = self.disassembly.instruction(self.index) {
 			if is_gadget_tail(instr, self.rop, self.sys, self.jop, self.noisy) {
 				let tail = self.index;
 				self.index += 1;
@@ -190,9 +144,27 @@ impl Iterator for TailsIter<'_, '_> {
 pub struct GadgetIterator<'b, 'd> {
 	disassembly: &'d Disassembly<'b>,
 	tail: usize,
-	start_index: usize,
 	max_instructions: usize,
 	noisy: bool,
+	start_index: usize,
+}
+
+impl<'b, 'd> GadgetIterator<'b, 'd> {
+	pub fn new(
+		disassembly: &'d Disassembly<'b>,
+		tail: usize,
+		max_instructions: usize,
+		noisy: bool,
+		start_index: usize,
+	) -> Self {
+		Self {
+			disassembly,
+			tail,
+			max_instructions,
+			noisy,
+			start_index,
+		}
+	}
 }
 
 impl<'b> Iterator for GadgetIterator<'b, '_> {
@@ -209,10 +181,10 @@ impl<'b> Iterator for GadgetIterator<'b, '_> {
 					continue 'outer;
 				}
 
-				let current = &self.disassembly.instructions[index];
-				match is_rop_gadget_head(current, self.noisy) {
+				let current = *self.disassembly.instruction(index).unwrap();
+				match is_rop_gadget_head(&current, self.noisy) {
 					true => {
-						instructions.push(*current);
+						instructions.push(current);
 						index += current.len()
 					}
 					false => {
@@ -223,10 +195,10 @@ impl<'b> Iterator for GadgetIterator<'b, '_> {
 			}
 
 			if index == self.tail {
-				instructions.push(self.disassembly.instructions[self.tail]);
-				let extra_len = self.disassembly.instructions[self.tail].len();
+				instructions.push(*self.disassembly.instruction(self.tail).unwrap());
+				let extra_len = self.disassembly.instruction(self.tail).unwrap().len();
 				let gadget = Gadget {
-					file_offset: self.disassembly.file_offset + self.start_index,
+					file_offset: self.disassembly.file_offset() + self.start_index,
 					len: self.tail + extra_len - self.start_index,
 					instructions,
 				};
