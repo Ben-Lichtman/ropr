@@ -42,6 +42,9 @@ struct Opt {
 	#[clap(short = 'R', long)]
 	regex: Vec<String>,
 
+	#[clap(long)]
+	raw: Option<bool>,
+
 	binary: PathBuf,
 }
 
@@ -52,7 +55,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 	let b = opts.binary;
 	let b = Binary::new(&b)?;
-	let sections = b.sections()?;
+	let sections = b.sections(opts.raw)?;
 
 	let noisy = opts.noisy;
 	let colour = opts.colour;

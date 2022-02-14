@@ -5,6 +5,8 @@ use crate::{
 };
 use iced_x86::{Decoder, DecoderOptions, Instruction};
 
+const MAX_INSTRUCTION_LENGTH: usize = 15;
+
 pub struct Disassembler<'b> {
 	decoder: Decoder<'b>,
 }
@@ -46,7 +48,7 @@ impl<'b> Disassembly<'b> {
 		let mut instructions = vec![Instruction::default(); bytes.len()];
 		let mut disassembler = Disassembler::new(section.bitness(), bytes);
 
-		// Fully disassemble program - cache for later backtracking of tails
+		// Fully disassemble program - cache for later use when finding gadgets
 		instructions
 			.iter_mut()
 			.enumerate()
@@ -83,7 +85,7 @@ impl<'b> Disassembly<'b> {
 		noisy: bool,
 	) -> GadgetIterator {
 		assert!(max_instructions > 0);
-		let start_index = tail.saturating_sub((max_instructions - 1) * 15);
+		let start_index = tail.saturating_sub((max_instructions - 1) * MAX_INSTRUCTION_LENGTH);
 		GadgetIterator::new(self, tail, max_instructions, noisy, start_index)
 	}
 }
