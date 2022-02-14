@@ -1,10 +1,10 @@
 use crate::{
+	binary::Section,
 	disassembler::{Bitness, Disassembler},
 	rules::{
 		is_base_pivot_head, is_gadget_tail, is_rop_gadget_head, is_stack_pivot_head,
 		is_stack_pivot_tail,
 	},
-	sections::Section,
 };
 use iced_x86::{Formatter, FormatterOutput, FormatterTextKind, Instruction};
 use std::{
