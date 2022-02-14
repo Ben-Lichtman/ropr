@@ -1,4 +1,4 @@
-edition = "2018"
+edition = "2021"
 fn_single_line = true
 hard_tabs = true
 trailing_semicolon = true
@@ -9,4 +9,4 @@ condense_wildcard_suffixes = true
 control_brace_style = "ClosingNextLine"
 overflow_delimited_expr = false
 use_small_heuristics = "Default"
-merge_imports = true
+imports_granularity="Crate"
