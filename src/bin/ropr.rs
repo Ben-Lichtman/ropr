@@ -1,3 +1,4 @@
+use clap::Parser;
 use colored::control::set_override;
 use core::panic;
 use rayon::prelude::*;
@@ -9,36 +10,35 @@ use std::{
 	path::PathBuf,
 	time::Instant,
 };
-use structopt::StructOpt;
 
-#[derive(StructOpt)]
-#[structopt(name = "ropr")]
+#[derive(Parser)]
+#[clap(name = "ropr")]
 struct Opt {
-	#[structopt(short = "n", long)]
+	#[clap(short = 'n', long)]
 	noisy: bool,
 
-	#[structopt(short = "c", long)]
+	#[clap(short = 'c', long)]
 	colour: Option<bool>,
 
-	#[structopt(short = "r", long)]
+	#[clap(short = 'r', long)]
 	norop: bool,
 
-	#[structopt(short = "s", long)]
+	#[clap(short = 's', long)]
 	nosys: bool,
 
-	#[structopt(short = "j", long)]
+	#[clap(short = 'j', long)]
 	nojop: bool,
 
-	#[structopt(short = "p", long)]
+	#[clap(short = 'p', long)]
 	stack_pivot: bool,
 
-	#[structopt(short = "b", long)]
+	#[clap(short = 'b', long)]
 	base_pivot: bool,
 
-	#[structopt(short, long, default_value = "6")]
+	#[clap(short, long, default_value = "6")]
 	max_instr: u8,
 
-	#[structopt(short = "R", long)]
+	#[clap(short = 'R', long)]
 	regex: Option<String>,
 
 	binary: PathBuf,
@@ -47,7 +47,7 @@ struct Opt {
 fn main() {
 	let start = Instant::now();
 
-	let opts = Opt::from_args();
+	let opts = Opt::parse();
 
 	let b = opts.binary;
 	let b = Binary::new(&b).unwrap();
