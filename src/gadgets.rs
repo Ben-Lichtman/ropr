@@ -9,7 +9,7 @@ use std::{
 
 #[derive(Debug)]
 pub struct Gadget {
-	file_offset: usize,
+	address: usize,
 	instructions: Vec<Instruction>,
 }
 
@@ -30,16 +30,16 @@ impl Hash for Gadget {
 
 impl PartialOrd for Gadget {
 	fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-		Some(self.file_offset.cmp(&other.file_offset))
+		Some(self.address.cmp(&other.address))
 	}
 }
 
 impl Ord for Gadget {
-	fn cmp(&self, other: &Self) -> Ordering { self.file_offset.cmp(&other.file_offset) }
+	fn cmp(&self, other: &Self) -> Ordering { self.address.cmp(&other.address) }
 }
 
 impl Gadget {
-	pub fn file_offset(&self) -> usize { self.file_offset }
+	pub fn address(&self) -> usize { self.address }
 
 	pub fn instructions(&self) -> &[Instruction] { &self.instructions }
 
@@ -82,7 +82,7 @@ impl Gadget {
 	pub fn format_full(&self, output: &mut impl FormatterOutput) {
 		// Write address
 		output.write(
-			&format!("{:#010x}: ", self.file_offset),
+			&format!("{:#010x}: ", self.address),
 			FormatterTextKind::Function,
 		);
 		self.format_instruction(output);
@@ -149,7 +149,7 @@ impl Iterator for GadgetIterator<'_> {
 				instructions.push(self.tail_instruction);
 				// instructions.shrink_to_fit();
 				return Some(Gadget {
-					file_offset: self.section_start + current_start_index,
+					address: self.section_start + current_start_index,
 					instructions,
 				});
 			}

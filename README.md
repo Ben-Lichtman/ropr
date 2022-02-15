@@ -67,6 +67,7 @@ OPTIONS:
     -p, --stack-pivot              
     -r, --norop                    
     -R, --regex <REGEX>            
+        --range <RANGE>            
         --raw <RAW>                
     -s, --nosys 
 ```
@@ -79,6 +80,7 @@ OPTIONS:
 - `stack-pivot` - Filters for gadgets which alter the stack pointer
 - `norop` - Removes normal "ROP Gadgets"
 - `regex` - Perform a regex search on the returned gadgets for easy filtering
+- `range` - search between address ranges (in hexadecial) eg. `0x1234-0x4567`
 - `raw` - treats the input file as a blob of code
 - `nosys` - Removes syscalls and other interrupts
 

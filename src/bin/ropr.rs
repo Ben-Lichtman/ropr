@@ -45,6 +45,9 @@ struct Opt {
 	#[clap(long)]
 	raw: Option<bool>,
 
+	#[clap(long)]
+	range: Vec<String>,
+
 	binary: PathBuf,
 }
 
@@ -70,6 +73,23 @@ fn main() -> Result<(), Box<dyn Error>> {
 		panic!("Max instructions must be >0");
 	}
 
+	let ranges = opts
+		.range
+		.iter()
+		.filter_map(|s| s.split_once('-'))
+		.filter_map(|(mut from, mut to)| {
+			if from.starts_with("0x") {
+				from = &from[2..];
+			}
+			if to.starts_with("0x") {
+				to = &to[2..];
+			}
+			let from = usize::from_str_radix(from, 16).ok()?;
+			let to = usize::from_str_radix(to, 16).ok()?;
+			Some((from, to))
+		})
+		.collect::<Vec<_>>();
+
 	let regices = opts
 		.regex
 		.into_iter()
@@ -87,6 +107,14 @@ fn main() -> Result<(), Box<dyn Error>> {
 					dis.gadgets_from_tail(tail, max_instructions_per_gadget, noisy)
 				})
 				.collect::<Vec<_>>()
+		})
+		.filter(|g| {
+			if ranges.is_empty() {
+				return true;
+			}
+			ranges
+				.iter()
+				.any(|(from, to)| -> bool { *from <= g.address() && g.address() <= *to })
 		})
 		.collect::<HashSet<_>>();
 
