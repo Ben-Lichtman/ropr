@@ -13,41 +13,53 @@ use std::{
 };
 
 #[derive(Parser)]
-#[clap(name = "ropr")]
+#[clap(version)]
 struct Opt {
+	/// Includes potentially low-quality gadgets such as prefixes, conditional branches, and near branches (will find significantly more gadgets)
 	#[clap(short = 'n', long)]
 	noisy: bool,
 
+	/// Forces output to be in colour or plain text (`true` or `false`)
 	#[clap(short = 'c', long)]
 	colour: Option<bool>,
 
+	/// Removes normal "ROP Gadgets"
 	#[clap(short = 'r', long)]
 	norop: bool,
 
+	/// Removes syscalls and other interrupts
 	#[clap(short = 's', long)]
 	nosys: bool,
 
+	/// Removes "JOP Gadgets" - these may have a controllable branch, call, etc. instead of a simple `ret` at the end
 	#[clap(short = 'j', long)]
 	nojop: bool,
 
+	/// Filters for gadgets which alter the stack pointer
 	#[clap(short = 'p', long)]
 	stack_pivot: bool,
 
+	/// Filters for gadgets which alter the base pointer
 	#[clap(short = 'b', long)]
 	base_pivot: bool,
 
+	/// Maximum number of instructions in a gadget
 	#[clap(short, long, default_value = "6")]
 	max_instr: u8,
 
+	/// Perform a regex search on the returned gadgets for easy filtering
 	#[clap(short = 'R', long)]
 	regex: Vec<String>,
 
+	/// Treats the input file as a blob of code (`true` or `false`)
 	#[clap(long)]
 	raw: Option<bool>,
 
+	/// Search between address ranges (in hexadecial) eg. `0x1234-0x4567`
 	#[clap(long)]
 	range: Vec<String>,
 
+	/// The path of the file to inspect
 	binary: PathBuf,
 }
 

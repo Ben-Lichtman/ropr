@@ -1,6 +1,6 @@
 [package]
 name = "ropr"
-version = "0.2.16"
+version = "0.2.17"
 authors = ["Ben Lichtman"]
 edition = "2021"
 description = "A blazing fast multithreaded ROP Gadget finder. ropper / ropgadget alternative"

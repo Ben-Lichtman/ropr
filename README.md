@@ -55,34 +55,26 @@ USAGE:
     ropr [OPTIONS] <BINARY>
 
 ARGS:
-    <BINARY>    
+    <BINARY>    The path of the file to inspect
 
 OPTIONS:
-    -b, --base-pivot               
-    -c, --colour <COLOUR>          
+    -b, --base-pivot               Filters for gadgets which alter the base pointer
+    -c, --colour <COLOUR>          Forces output to be in colour or plain text (`true` or `false`)
     -h, --help                     Print help information
-    -j, --nojop                    
-    -m, --max-instr <MAX_INSTR>    [default: 6]
-    -n, --noisy                    
-    -p, --stack-pivot              
-    -r, --norop                    
-    -R, --regex <REGEX>            
-        --range <RANGE>            
-        --raw <RAW>                
-    -s, --nosys 
+    -j, --nojop                    Removes "JOP Gadgets" - these may have a controllable branch,
+                                   call, etc. instead of a simple `ret` at the end
+    -m, --max-instr <MAX_INSTR>    Maximum number of instructions in a gadget [default: 6]
+    -n, --noisy                    Includes potentially low-quality gadgets such as prefixes,
+                                   conditional branches, and near branches (will find significantly
+                                   more gadgets)
+    -p, --stack-pivot              Filters for gadgets which alter the stack pointer
+    -r, --norop                    Removes normal "ROP Gadgets"
+    -R, --regex <REGEX>            Perform a regex search on the returned gadgets for easy filtering
+        --range <RANGE>            Search between address ranges (in hexadecial) eg. `0x1234-0x4567`
+        --raw <RAW>                Treats the input file as a blob of code (`true` or `false`)
+    -s, --nosys                    Removes syscalls and other interrupts
+    -V, --version                  Print version information
 ```
-
-- `base-pivot` - Filters for gadgets which alter the base pointer
-- `colour` - Forces output to be in colour or plain text
-- `nojop` - Removes "JOP Gadgets" - these may have a controllable branch, call, etc. instead of a simple `ret` at the end
-- `max-instr`- Maximum number of instructions in a gadget
-- `noisy` - Includes potentially low-quality gadgets such as prefixes, conditional branches, and near branches (will find significantly more gadgets)
-- `stack-pivot` - Filters for gadgets which alter the stack pointer
-- `norop` - Removes normal "ROP Gadgets"
-- `regex` - Perform a regex search on the returned gadgets for easy filtering
-- `range` - search between address ranges (in hexadecial) eg. `0x1234-0x4567`
-- `raw` - treats the input file as a blob of code
-- `nosys` - Removes syscalls and other interrupts
 
 For example if I was looking for a way to fill `rax` with a value from another register I may choose to filter by the regex `^mov eax, ...;`:
 
