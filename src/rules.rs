@@ -142,6 +142,7 @@ pub fn is_stack_pivot_head(instr: &Instruction) -> bool {
 			matches!(reg0, Register::RSP | Register::ESP | Register::SP)
 				|| matches!(reg1, Register::RSP | Register::ESP | Register::SP)
 		}
+		Mnemonic::Leave => true,
 		_ => false,
 	}
 }
@@ -200,6 +201,7 @@ pub fn is_base_pivot_head(instr: &Instruction) -> bool {
 			matches!(reg0, Register::RBP | Register::EBP | Register::BP)
 				|| matches!(reg1, Register::RBP | Register::EBP | Register::BP)
 		}
+		Mnemonic::Enter => true,
 		_ => false,
 	}
 }
