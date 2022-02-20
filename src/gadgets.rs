@@ -96,6 +96,7 @@ pub struct GadgetIterator<'d> {
 	max_instructions: usize,
 	noisy: bool,
 	start_index: usize,
+	finished: bool,
 }
 
 impl<'d> GadgetIterator<'d> {
@@ -114,6 +115,7 @@ impl<'d> GadgetIterator<'d> {
 			max_instructions,
 			noisy,
 			start_index,
+			finished: false,
 		}
 	}
 }
@@ -153,6 +155,16 @@ impl Iterator for GadgetIterator<'_> {
 					instructions,
 				});
 			}
+		}
+
+		if !self.finished {
+			self.finished = true;
+			instructions.clear();
+			instructions.push(self.tail_instruction);
+			return Some(Gadget {
+				address: self.section_start + self.start_index,
+				instructions,
+			});
 		}
 
 		None
