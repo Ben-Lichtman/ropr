@@ -4,6 +4,8 @@ fn is_ret(instr: &Instruction) -> bool { matches!(instr.mnemonic(), Mnemonic::Re
 
 fn is_sys(instr: &Instruction) -> bool {
 	match instr.mnemonic() {
+		Mnemonic::Iret | Mnemonic::Iretd | Mnemonic::Iretq => true,
+		Mnemonic::Sysret | Mnemonic::Sysretq => true,
 		Mnemonic::Syscall => true,
 		Mnemonic::Int => matches!(instr.try_immediate(0).unwrap(), 0x80),
 		_ => false,
