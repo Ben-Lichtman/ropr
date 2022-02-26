@@ -3,7 +3,9 @@ use colored::control::set_override;
 use core::panic;
 use rayon::prelude::*;
 use regex::Regex;
-use ropr::{binary::Binary, disassembler::Disassembly, formatter::ColourFormatter};
+use ropr::{
+	binary::Binary, disassembler::Disassembly, formatter::ColourFormatter, gadgets::Gadget,
+};
 use std::{
 	collections::HashSet,
 	error::Error,
@@ -63,6 +65,18 @@ struct Opt {
 	binary: PathBuf,
 }
 
+fn write_gadgets(mut w: impl Write, gadgets: &[(Gadget, String)]) {
+	let mut output = ColourFormatter::new();
+	for (gadget, _) in gadgets {
+		output.clear();
+		gadget.format_full(&mut output);
+		match writeln!(w, "{}", output) {
+			Ok(_) => (),
+			Err(_) => return, // Pipe closed - finished writing gadgets
+		}
+	}
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
 	let start = Instant::now();
 
@@ -108,7 +122,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 		.map(|r| Regex::new(&r))
 		.collect::<Result<Vec<_>, _>>()?;
 
-	let gadgets = sections
+	let deduped = sections
 		.iter()
 		.filter_map(Disassembly::new)
 		.flat_map(|dis| {
@@ -130,7 +144,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 		})
 		.collect::<HashSet<_>>();
 
-	let mut gadgets = gadgets
+	let mut gadgets = deduped
 		.into_iter()
 		.map(|g| {
 			let mut formatted = String::new();
@@ -155,12 +169,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 		set_override(colour);
 	}
 
-	let mut output = ColourFormatter::new();
-	for (gadget, _) in gadgets {
-		output.clear();
-		gadget.format_full(&mut output);
-		writeln!(stdout, "{}", output).unwrap();
-	}
+	write_gadgets(&mut stdout, &gadgets);
 
 	drop(stdout);
 
