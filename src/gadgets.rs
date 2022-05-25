@@ -2,45 +2,14 @@ use crate::rules::{
 	is_base_pivot_head, is_rop_gadget_head, is_stack_pivot_head, is_stack_pivot_tail,
 };
 use iced_x86::{Formatter, FormatterOutput, FormatterTextKind, Instruction};
-use std::{
-	cmp::Ordering,
-	hash::{Hash, Hasher},
-};
+use std::hash::Hash;
 
-#[derive(Debug)]
+#[derive(Debug, Eq, Hash, PartialEq)]
 pub struct Gadget {
-	address: usize,
 	instructions: Vec<Instruction>,
 }
 
-impl PartialEq for Gadget {
-	fn eq(&self, other: &Self) -> bool { self.instructions.eq(&other.instructions) }
-}
-
-impl Eq for Gadget {}
-
-impl Hash for Gadget {
-	fn hash<H>(&self, state: &mut H)
-	where
-		H: Hasher,
-	{
-		self.instructions.hash(state);
-	}
-}
-
-impl PartialOrd for Gadget {
-	fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-		Some(self.address.cmp(&other.address))
-	}
-}
-
-impl Ord for Gadget {
-	fn cmp(&self, other: &Self) -> Ordering { self.address.cmp(&other.address) }
-}
-
 impl Gadget {
-	pub fn address(&self) -> usize { self.address }
-
 	pub fn instructions(&self) -> &[Instruction] { &self.instructions }
 
 	pub fn is_stack_pivot(&self) -> bool {
@@ -78,15 +47,6 @@ impl Gadget {
 			}
 		}
 	}
-
-	pub fn format_full(&self, output: &mut impl FormatterOutput) {
-		// Write address
-		output.write(
-			&format!("{:#010x}: ", self.address),
-			FormatterTextKind::Function,
-		);
-		self.format_instruction(output);
-	}
 }
 
 pub struct GadgetIterator<'d> {
@@ -121,7 +81,7 @@ impl<'d> GadgetIterator<'d> {
 }
 
 impl Iterator for GadgetIterator<'_> {
-	type Item = Gadget;
+	type Item = (Gadget, usize);
 
 	fn next(&mut self) -> Option<Self::Item> {
 		let mut instructions = Vec::new();
@@ -150,10 +110,10 @@ impl Iterator for GadgetIterator<'_> {
 			if index == len {
 				instructions.push(self.tail_instruction);
 				// instructions.shrink_to_fit();
-				return Some(Gadget {
-					address: self.section_start + current_start_index,
-					instructions,
-				});
+				return Some((
+					Gadget { instructions },
+					self.section_start + current_start_index,
+				));
 			}
 		}
 
@@ -161,10 +121,10 @@ impl Iterator for GadgetIterator<'_> {
 			self.finished = true;
 			instructions.clear();
 			instructions.push(self.tail_instruction);
-			return Some(Gadget {
-				address: self.section_start + self.start_index,
-				instructions,
-			});
+			return Some((
+				Gadget { instructions },
+				self.section_start + self.start_index,
+			));
 		}
 
 		None

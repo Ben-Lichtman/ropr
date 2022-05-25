@@ -1,13 +1,14 @@
 use clap::Parser;
 use colored::control::set_override;
 use core::panic;
+use iced_x86::{FormatterOutput, FormatterTextKind};
 use rayon::prelude::*;
 use regex::Regex;
 use ropr::{
 	binary::Binary, disassembler::Disassembly, formatter::ColourFormatter, gadgets::Gadget,
 };
 use std::{
-	collections::HashSet,
+	collections::HashMap,
 	error::Error,
 	io::{stdout, BufWriter, Write},
 	path::PathBuf,
@@ -65,11 +66,12 @@ struct Opt {
 	binary: PathBuf,
 }
 
-fn write_gadgets(mut w: impl Write, gadgets: &[(Gadget, String)]) {
+fn write_gadgets(mut w: impl Write, gadgets: &[(Gadget, usize)]) {
 	let mut output = ColourFormatter::new();
-	for (gadget, _) in gadgets {
+	for (gadget, address) in gadgets {
 		output.clear();
-		gadget.format_full(&mut output);
+		output.write(&format!("{:#010x}: ", address), FormatterTextKind::Function);
+		gadget.format_instruction(&mut output);
 		match writeln!(w, "{}", output) {
 			Ok(_) => (),
 			Err(_) => return, // Pipe closed - finished writing gadgets
@@ -134,28 +136,27 @@ fn main() -> Result<(), Box<dyn Error>> {
 				})
 				.collect::<Vec<_>>()
 		})
-		.filter(|g| {
+		.filter(|&(_, address)| {
 			if ranges.is_empty() {
 				return true;
 			}
 			ranges
 				.iter()
-				.any(|(from, to)| -> bool { *from <= g.address() && g.address() <= *to })
+				.any(|(from, to)| -> bool { *from <= address && address <= *to })
 		})
-		.collect::<HashSet<_>>();
+		.collect::<HashMap<_, _>>();
 
 	let mut gadgets = deduped
 		.into_iter()
-		.map(|g| {
+		.filter(|(g, _)| {
 			let mut formatted = String::new();
 			g.format_instruction(&mut formatted);
-			(g, formatted)
+			regices.iter().all(|r| r.is_match(&formatted))
 		})
-		.filter(|(_, formatted)| regices.iter().all(|r| r.is_match(formatted)))
 		.filter(|(g, _)| !stack_pivot | g.is_stack_pivot())
 		.filter(|(g, _)| !base_pivot | g.is_base_pivot())
 		.collect::<Vec<_>>();
-	gadgets.sort_unstable_by(|(_, a), (_, b)| a.cmp(b));
+	gadgets.sort_unstable_by(|(_, addr1), (_, addr2)| addr1.cmp(addr2));
 
 	let gadget_count = gadgets.len();
 
