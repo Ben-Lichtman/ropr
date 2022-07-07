@@ -129,7 +129,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 		.map(|r| Regex::new(&r))
 		.collect::<Result<Vec<_>, _>>()?;
 
-	let deduped = sections
+	let gadget_to_addr = sections
 		.iter()
 		.filter_map(Disassembly::new)
 		.flat_map(|dis| {
@@ -151,7 +151,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 		})
 		.collect::<HashMap<_, _>>();
 
-	let mut gadgets = deduped
+	let mut gadgets = gadget_to_addr
 		.into_iter()
 		.filter(|(g, _)| {
 			let mut formatted = String::new();
