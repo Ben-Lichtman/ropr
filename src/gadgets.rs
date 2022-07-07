@@ -7,6 +7,7 @@ use std::hash::Hash;
 #[derive(Debug, Eq, Hash, PartialEq)]
 pub struct Gadget {
 	instructions: Vec<Instruction>,
+	unique_id: usize
 }
 
 impl Gadget {
@@ -55,6 +56,7 @@ pub struct GadgetIterator<'d> {
 	predecessors: &'d [Instruction],
 	max_instructions: usize,
 	noisy: bool,
+	uniq: bool,
 	start_index: usize,
 	finished: bool,
 }
@@ -66,6 +68,7 @@ impl<'d> GadgetIterator<'d> {
 		predecessors: &'d [Instruction],
 		max_instructions: usize,
 		noisy: bool,
+		uniq: bool,
 		start_index: usize,
 	) -> Self {
 		Self {
@@ -74,6 +77,7 @@ impl<'d> GadgetIterator<'d> {
 			predecessors,
 			max_instructions,
 			noisy,
+			uniq,
 			start_index,
 			finished: false,
 		}
@@ -110,8 +114,13 @@ impl Iterator for GadgetIterator<'_> {
 			if index == len {
 				instructions.push(self.tail_instruction);
 				// instructions.shrink_to_fit();
+				let unique_id = if self.uniq {
+					0
+				} else {
+					self.section_start + current_start_index
+				};
 				return Some((
-					Gadget { instructions },
+					Gadget { instructions, unique_id },
 					self.section_start + current_start_index,
 				));
 			}
@@ -121,8 +130,13 @@ impl Iterator for GadgetIterator<'_> {
 			self.finished = true;
 			instructions.clear();
 			instructions.push(self.tail_instruction);
+			let unique_id = if self.uniq {
+				0
+			} else {
+				self.section_start + self.start_index
+			};
 			return Some((
-				Gadget { instructions },
+				Gadget { instructions, unique_id },
 				self.section_start + self.start_index,
 			));
 		}
