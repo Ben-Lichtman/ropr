@@ -62,6 +62,10 @@ struct Opt {
 	#[clap(long)]
 	range: Vec<String>,
 
+	/// Show duplicated gadgets
+	#[clap(short = 'u', long)]
+	nouniq: bool,
+
 	/// The path of the file to inspect
 	binary: PathBuf,
 }
@@ -93,6 +97,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 	let rop = !opts.norop;
 	let sys = !opts.nosys;
 	let jop = !opts.nojop;
+	let uniq = !opts.nouniq;
 	let stack_pivot = opts.stack_pivot;
 	let base_pivot = opts.base_pivot;
 	let max_instructions_per_gadget = opts.max_instr as usize;
@@ -124,7 +129,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 		.map(|r| Regex::new(&r))
 		.collect::<Result<Vec<_>, _>>()?;
 
-	let deduped = sections
+	let gadget_to_addr = sections
 		.iter()
 		.filter_map(Disassembly::new)
 		.flat_map(|dis| {
@@ -132,7 +137,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 				.into_par_iter()
 				.filter(|offset| dis.is_tail_at(*offset, rop, sys, jop, noisy))
 				.flat_map_iter(|tail| {
-					dis.gadgets_from_tail(tail, max_instructions_per_gadget, noisy)
+					dis.gadgets_from_tail(tail, max_instructions_per_gadget, noisy, uniq)
 				})
 				.collect::<Vec<_>>()
 		})
@@ -146,7 +151,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 		})
 		.collect::<HashMap<_, _>>();
 
-	let mut gadgets = deduped
+	let mut gadgets = gadget_to_addr
 		.into_iter()
 		.filter(|(g, _)| {
 			let mut formatted = String::new();

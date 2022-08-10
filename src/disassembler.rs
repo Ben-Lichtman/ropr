@@ -85,6 +85,7 @@ impl<'b> Disassembly<'b> {
 		tail_index: usize,
 		max_instructions: usize,
 		noisy: bool,
+		uniq: bool
 	) -> GadgetIterator {
 		assert!(max_instructions > 0);
 		let start_index =
@@ -97,6 +98,7 @@ impl<'b> Disassembly<'b> {
 			predecessors,
 			max_instructions,
 			noisy,
+			uniq,
 			start_index,
 		)
 	}
