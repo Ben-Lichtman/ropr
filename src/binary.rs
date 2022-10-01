@@ -16,7 +16,7 @@ pub struct Binary {
 	bytes: Vec<u8>,
 }
 
-impl<'p> Binary {
+impl Binary {
 	pub fn new(path: impl AsRef<Path>) -> Result<Self> {
 		let path = path.as_ref();
 		let bytes = read(path)?;
