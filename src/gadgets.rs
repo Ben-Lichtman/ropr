@@ -7,7 +7,7 @@ use std::hash::Hash;
 #[derive(Debug, Eq, Hash, PartialEq)]
 pub struct Gadget {
 	instructions: Vec<Instruction>,
-	unique_id: usize
+	unique_id: usize,
 }
 
 impl Gadget {
@@ -116,11 +116,15 @@ impl Iterator for GadgetIterator<'_> {
 				// instructions.shrink_to_fit();
 				let unique_id = if self.uniq {
 					0
-				} else {
+				}
+				else {
 					self.section_start + current_start_index
 				};
 				return Some((
-					Gadget { instructions, unique_id },
+					Gadget {
+						instructions,
+						unique_id,
+					},
 					self.section_start + current_start_index,
 				));
 			}
@@ -132,11 +136,15 @@ impl Iterator for GadgetIterator<'_> {
 			instructions.push(self.tail_instruction);
 			let unique_id = if self.uniq {
 				0
-			} else {
+			}
+			else {
 				self.section_start + self.start_index
 			};
 			return Some((
-				Gadget { instructions, unique_id },
+				Gadget {
+					instructions,
+					unique_id,
+				},
 				self.section_start + self.start_index,
 			));
 		}
