@@ -23,8 +23,7 @@ impl Gadget {
 
 	pub fn is_base_pivot(&self) -> bool {
 		match self.instructions.as_slice() {
-			[] => false,
-			[_] => false,
+			[] | [_] => false,
 			[h @ .., _] => h.iter().any(is_base_pivot_head),
 		}
 	}
