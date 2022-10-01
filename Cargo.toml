@@ -8,10 +8,10 @@ repository = "https://github.com/Ben-Lichtman/ropr"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-thiserror = "1.0.31"
-goblin = "0.5.1"
+thiserror = "1.0.37"
+goblin = "0.5.4"
 iced-x86 = "1.17.0"
 colored = "2.0.0"
-regex = "1.5.6"
+regex = "1.6.0"
 rayon = "1.5.3"
-clap = { version = "3.0.18", features = ["derive"] }
+clap = { version = "3.2.22", features = ["derive"] }
