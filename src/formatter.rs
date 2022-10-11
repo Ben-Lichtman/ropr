@@ -26,16 +26,10 @@ impl FormatterOutput for ColourFormatter {
 	fn write(&mut self, text: &str, kind: FormatterTextKind) {
 		self.output.push(match kind {
 			FormatterTextKind::Function => text.red(),
-			FormatterTextKind::Mnemonic => text.yellow(),
-			FormatterTextKind::Prefix => text.yellow(),
+			FormatterTextKind::Mnemonic | FormatterTextKind::Prefix => text.yellow(),
 			FormatterTextKind::Keyword => text.normal(),
 			FormatterTextKind::Register => match text {
-				"sp" => text.red(),
-				"esp" => text.red(),
-				"rsp" => text.red(),
-				"ip" => text.red(),
-				"eip" => text.red(),
-				"rip" => text.red(),
+				"sp" | "esp" | "rsp" | "ip" | "eip" | "rip" => text.red(),
 				_ => text.normal(),
 			},
 			_ => text.normal(),
