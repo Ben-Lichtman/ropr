@@ -7,8 +7,8 @@ use regex::Regex;
 use ropr::{
 	binary::Binary, disassembler::Disassembly, formatter::ColourFormatter, gadgets::Gadget,
 };
+use rustc_hash::FxHashMap;
 use std::{
-	collections::HashMap,
 	error::Error,
 	io::{stdout, BufWriter, Write},
 	path::PathBuf,
@@ -89,7 +89,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 	let opts = Opt::parse();
 
 	let b = opts.binary;
-	let b = Binary::new(&b)?;
+	let b = Binary::new(b)?;
 	let sections = b.sections(opts.raw)?;
 
 	let noisy = opts.noisy;
@@ -149,7 +149,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 				.iter()
 				.any(|(from, to)| -> bool { *from <= address && address <= *to })
 		})
-		.collect::<HashMap<_, _>>();
+		.collect::<FxHashMap<_, _>>();
 
 	let mut gadgets = gadget_to_addr
 		.into_iter()
