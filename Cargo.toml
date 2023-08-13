@@ -1,6 +1,6 @@
 [package]
 name = "ropr"
-version = "0.2.24"
+version = "0.2.25"
 authors = ["Ben Lichtman"]
 edition = "2021"
 description = "A blazing fast multithreaded ROP Gadget finder. ropper / ropgadget alternative"
@@ -8,11 +8,11 @@ repository = "https://github.com/Ben-Lichtman/ropr"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-thiserror = "1.0.40"
-goblin = "0.6.1"
-iced-x86 = "1.18.0"
-colored = "2.0.0"
-regex = "1.8.1"
+thiserror = "1.0.44"
+goblin = "0.7.1"
+iced-x86 = "1.20.0"
+colored = "2.0.4"
+regex = "1.9.3"
 rayon = "1.7.0"
-clap = { version = "4.2.4", features = ["derive"] }
+clap = { version = "4.3.21", features = ["derive"] }
 rustc-hash = "1.1.0"
