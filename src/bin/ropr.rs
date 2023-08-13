@@ -54,6 +54,10 @@ struct Opt {
 	#[clap(short = 'R', long)]
 	regex: Vec<String>,
 
+	/// Perform an inverse regex search on the returned gadgets for easy filtering
+	#[clap(short = 'N')]
+	not_regex: Vec<String>,
+
 	/// Treats the input file as a blob of code (`true` or `false`)
 	#[clap(long)]
 	raw: Option<bool>,
@@ -129,6 +133,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 		.map(|r| Regex::new(&r))
 		.collect::<Result<Vec<_>, _>>()?;
 
+	let regices_inverse = opts
+		.not_regex
+		.into_iter()
+		.map(|r| Regex::new(&r))
+		.collect::<Result<Vec<_>, _>>()?;
+
 	let gadget_to_addr = sections
 		.iter()
 		.filter_map(Disassembly::new)
@@ -157,6 +167,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 			let mut formatted = String::new();
 			g.format_instruction(&mut formatted);
 			regices.iter().all(|r| r.is_match(&formatted))
+				&& !regices_inverse.iter().any(|r| r.is_match(&formatted))
 		})
 		.filter(|(g, _)| !stack_pivot | g.is_stack_pivot())
 		.filter(|(g, _)| !base_pivot | g.is_base_pivot())
