@@ -188,7 +188,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 	write_gadgets(&mut stdout, &gadgets);
 
-	drop(stdout);
+	stdout.into_inner()?.flush()?;
 
 	eprintln!(
 		"\n==> Found {} gadgets in {:.3} seconds",

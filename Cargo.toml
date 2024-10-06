@@ -8,11 +8,11 @@ repository = "https://github.com/Ben-Lichtman/ropr"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-thiserror = "1.0.44"
-goblin = "0.7.1"
-iced-x86 = "1.20.0"
-colored = "2.0.4"
-regex = "1.9.3"
-rayon = "1.7.0"
-clap = { version = "4.3.21", features = ["derive"] }
-rustc-hash = "1.1.0"
+clap = { version = "4.5.20", features = ["derive"] }
+colored = "2.1.0"
+goblin = "0.8.2"
+iced-x86 = "1.21.0"
+rayon = "1.10.0"
+regex = "1.11.0"
+rustc-hash = "2.0.0"
+thiserror = "1.0.64"
