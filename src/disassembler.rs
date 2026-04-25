@@ -1,9 +1,10 @@
+use iced_x86::{Decoder, DecoderOptions, Instruction};
+
 use crate::{
 	binary::{Bitness, Section},
 	gadgets::GadgetIterator,
 	rules::is_gadget_tail,
 };
-use iced_x86::{Decoder, DecoderOptions, Instruction};
 
 const MAX_INSTRUCTION_LENGTH: usize = 15;
 
@@ -86,7 +87,7 @@ impl<'b> Disassembly<'b> {
 		max_instructions: usize,
 		noisy: bool,
 		uniq: bool,
-	) -> GadgetIterator {
+	) -> GadgetIterator<'_> {
 		assert!(max_instructions > 0);
 		let start_index =
 			tail_index.saturating_sub((max_instructions - 1) * MAX_INSTRUCTION_LENGTH);

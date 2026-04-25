@@ -1,9 +1,11 @@
-use crate::error::{Error, Result};
-use goblin::{elf64::program_header::PF_X, pe::section_table::IMAGE_SCN_MEM_EXECUTE, Object};
 use std::{
 	fs::read,
 	path::{Path, PathBuf},
 };
+
+use goblin::{Object, elf64::program_header::PF_X, pe::section_table::IMAGE_SCN_MEM_EXECUTE};
+
+use crate::error::{Error, Result};
 
 #[derive(Debug, Clone, Copy)]
 pub enum Bitness {
@@ -26,7 +28,7 @@ impl Binary {
 
 	pub fn path(&self) -> &Path { &self.path }
 
-	pub fn sections(&self, raw: Option<bool>, zero: bool) -> Result<Vec<Section>> {
+	pub fn sections(&self, raw: Option<bool>, zero: bool) -> Result<Vec<Section<'_>>> {
 		match raw {
 			Some(true) => Ok(vec![Section {
 				file_offset: 0,
@@ -39,8 +41,7 @@ impl Binary {
 				Object::Elf(e) => {
 					let bitness = if e.is_64 {
 						Bitness::Bits64
-					}
-					else {
+					} else {
 						Bitness::Bits32
 					};
 					let sections = e
@@ -64,8 +65,7 @@ impl Binary {
 				Object::PE(p) => {
 					let bitness = if p.is_64 {
 						Bitness::Bits64
-					}
-					else {
+					} else {
 						Bitness::Bits32
 					};
 					let sections = p
@@ -78,7 +78,7 @@ impl Binary {
 							Section {
 								file_offset: start_offset,
 								section_vaddr: section.virtual_address as usize,
-								program_base: if zero { 0 } else { p.image_base },
+								program_base: if zero { 0 } else { p.image_base as _ },
 								bytes: &self.bytes[start_offset..end_offset],
 								bitness,
 							}
@@ -94,8 +94,7 @@ impl Binary {
 				Object::Elf(e) => {
 					let bitness = if e.is_64 {
 						Bitness::Bits64
-					}
-					else {
+					} else {
 						Bitness::Bits32
 					};
 					let sections = e
@@ -119,8 +118,7 @@ impl Binary {
 				Object::PE(p) => {
 					let bitness = if p.is_64 {
 						Bitness::Bits64
-					}
-					else {
+					} else {
 						Bitness::Bits32
 					};
 					let sections = p
@@ -133,7 +131,7 @@ impl Binary {
 							Section {
 								file_offset: start_offset,
 								section_vaddr: section.virtual_address as usize,
-								program_base: if zero { 0 } else { p.image_base },
+								program_base: if zero { 0 } else { p.image_base as _ },
 								bytes: &self.bytes[start_offset..end_offset],
 								bitness,
 							}

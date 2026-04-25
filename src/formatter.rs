@@ -1,6 +1,7 @@
+use std::fmt::{Display, Formatter, Result};
+
 use colored::{ColoredString, Colorize};
 use iced_x86::{FormatterOutput, FormatterTextKind};
-use std::fmt::{Display, Formatter, Result};
 
 #[derive(Default)]
 pub struct ColourFormatter {

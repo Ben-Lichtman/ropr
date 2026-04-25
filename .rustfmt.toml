@@ -1,0 +1,7 @@
+edition = "2024"
+fn_single_line = true
+hard_tabs = true
+use_field_init_shorthand = true
+condense_wildcard_suffixes = true
+imports_granularity = "Crate"
+group_imports = "StdExternalCrate"

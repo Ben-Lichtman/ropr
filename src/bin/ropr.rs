@@ -1,6 +1,13 @@
+use core::panic;
+use std::{
+	error::Error,
+	io::{BufWriter, Write, stdout},
+	path::PathBuf,
+	time::Instant,
+};
+
 use clap::Parser;
 use colored::control::set_override;
-use core::panic;
 use iced_x86::{FormatterOutput, FormatterTextKind};
 use rayon::prelude::*;
 use regex::Regex;
@@ -8,12 +15,6 @@ use ropr::{
 	binary::Binary, disassembler::Disassembly, formatter::ColourFormatter, gadgets::Gadget,
 };
 use rustc_hash::FxHashMap;
-use std::{
-	error::Error,
-	io::{stdout, BufWriter, Write},
-	path::PathBuf,
-	time::Instant,
-};
 
 #[derive(Parser)]
 #[clap(version)]

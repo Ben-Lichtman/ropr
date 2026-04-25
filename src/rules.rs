@@ -20,8 +20,7 @@ fn is_jop(instr: &Instruction, noisy: bool) -> bool {
 					instr.op0_kind(),
 					OpKind::NearBranch64 | OpKind::NearBranch32 | OpKind::NearBranch16
 				)
-			}
-			else {
+			} else {
 				match instr.op0_kind() {
 					OpKind::Register => true,
 					OpKind::Memory => !matches!(instr.memory_base(), Register::EIP | Register::RIP),
@@ -35,8 +34,7 @@ fn is_jop(instr: &Instruction, noisy: bool) -> bool {
 					instr.op0_kind(),
 					OpKind::NearBranch64 | OpKind::NearBranch32 | OpKind::NearBranch16
 				)
-			}
-			else {
+			} else {
 				match instr.op0_kind() {
 					OpKind::Register => true,
 					OpKind::Memory => !matches!(instr.memory_base(), Register::EIP | Register::RIP),
@@ -128,10 +126,14 @@ pub fn is_stack_pivot_head(instr: &Instruction) -> bool {
 				&& matches!(
 					kind1,
 					OpKind::Immediate8
-						| OpKind::Immediate8_2nd | OpKind::Immediate16
-						| OpKind::Immediate32 | OpKind::Immediate64
-						| OpKind::Immediate8to16 | OpKind::Immediate8to32
-						| OpKind::Immediate8to64 | OpKind::Immediate32to64
+						| OpKind::Immediate8_2nd
+						| OpKind::Immediate16
+						| OpKind::Immediate32
+						| OpKind::Immediate64
+						| OpKind::Immediate8to16
+						| OpKind::Immediate8to32
+						| OpKind::Immediate8to64
+						| OpKind::Immediate32to64
 						| OpKind::Register
 				)
 		}
@@ -187,10 +189,14 @@ pub fn is_base_pivot_head(instr: &Instruction) -> bool {
 				&& matches!(
 					kind1,
 					OpKind::Immediate8
-						| OpKind::Immediate8_2nd | OpKind::Immediate16
-						| OpKind::Immediate32 | OpKind::Immediate64
-						| OpKind::Immediate8to16 | OpKind::Immediate8to32
-						| OpKind::Immediate8to64 | OpKind::Immediate32to64
+						| OpKind::Immediate8_2nd
+						| OpKind::Immediate16
+						| OpKind::Immediate32
+						| OpKind::Immediate64
+						| OpKind::Immediate8to16
+						| OpKind::Immediate8to32
+						| OpKind::Immediate8to64
+						| OpKind::Immediate32to64
 						| OpKind::Register
 				)
 		}

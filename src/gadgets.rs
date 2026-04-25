@@ -1,8 +1,10 @@
+use std::hash::Hash;
+
+use iced_x86::{Formatter, FormatterOutput, FormatterTextKind, Instruction};
+
 use crate::rules::{
 	is_base_pivot_head, is_rop_gadget_head, is_stack_pivot_head, is_stack_pivot_tail,
 };
-use iced_x86::{Formatter, FormatterOutput, FormatterTextKind, Instruction};
-use std::hash::Hash;
 
 #[derive(Debug, Eq, Hash, PartialEq)]
 pub struct Gadget {
@@ -115,8 +117,7 @@ impl Iterator for GadgetIterator<'_> {
 				// instructions.shrink_to_fit();
 				let unique_id = if self.uniq {
 					0
-				}
-				else {
+				} else {
 					self.section_start + current_start_index
 				};
 				return Some((
@@ -135,8 +136,7 @@ impl Iterator for GadgetIterator<'_> {
 			instructions.push(self.tail_instruction);
 			let unique_id = if self.uniq {
 				0
-			}
-			else {
+			} else {
 				self.section_start + self.start_index
 			};
 			return Some((
